@@ -24,15 +24,14 @@ BRKAS2 = 1		; if 1, BRK will assemble to two $00 bytes
 			; for both hardware and software interrupts
 
 	.if INROM
-	.org $F000
+	* = $F000
 	.else
-	.org $7100
+	* = $7100
 	.endif
-	.start MAIN
 
 	.if INROM	
 MONTOR	=ESCAPE
-	.ELSE
+	.else
 MONTOR	=$FF1F
 GETLINE	=MONTOR		; doesn't work in RAM version because needs adjusted monitor code
 	.endif
@@ -80,7 +79,7 @@ HIBYTE	='>'		; Indicates hi-byte of following word
 PLUS	='+'		; Plus in simple expressions
 MINUS	='-'		; Minus in simple expressions
 DOT	='.'		; Indicates a local label
-QUOTE	='''		; delimits a string
+QUOTE	=''''		; delimits a string
 COMMA	=','
 CMNT	=';'		; indicates a full line comment
 
@@ -148,6 +147,7 @@ LSYMTL	=$EC		; address of the local symbol table
 LSYMTH	=$ED
 NLSYM	=$EE		; number of local symbols
 
+	.if MINIMONITOR
 ; these 7 locations must be contiguous
 REGS	=$F0
 SAVP	=REGS
@@ -155,6 +155,7 @@ SAVS	=$F1
 SAVY	=$F2
 SAVX	=$F3
 SAVA	=$F4
+	.endif
 CURPCL	=$F5		; Current PC
 CURPCH	=$F6
 
@@ -198,10 +199,10 @@ MAIN
 	STA TABLEH
 	.endif
 	LDX #MSGSZ
-.NEXT	LDA MSG-1,X
+_NEXT	LDA MSG-1,X
 	JSR OUTCH
 	DEX
-	BNE .NEXT
+	BNE _NEXT
 	DEX
 	TXS		; reset stack pointer on startup
 	JSR SHINIT	; default source line and address data
@@ -223,28 +224,28 @@ SHELL			; Loops forever
 	LDA #PROMPT
 	JSR OUTCH	; prompt
 	JSR OUTSP	; can drop this if desperate for 3 more bytes :-)
-.KEY	JSR GETCH
+_KEY	JSR GETCH
 	CMP #BS
 	BEQ SHELL	; start again
 	CMP #CR
-	BEQ .RUN
+	BEQ _RUN
 	JSR OUTCH
 	STA IOBUF,X
 	INX
-	BNE .KEY	; always branches
-.RUN	LDA ARGS	
+	BNE _KEY	; always branches
+_RUN	LDA ARGS
 	BEQ SHELL	; empty command line
 	LDA ARGS+1	; ensure command is just a single letter
-	BEQ .OK
+	BEQ _OK
 	CMP #SP
-	BNE .ERR;SHLERR
-.OK	LDX #NUMCMD
-.NEXT	LDA CMDS-1,X	; find the typed command
+	BNE _ERR;SHLERR
+_OK	LDX #NUMCMD
+_NEXT	LDA CMDS-1,X	; find the typed command
 	CMP ARGS
 	BEQ GOTCMD
 	DEX
-	BNE .NEXT
-.ERR	PHA		; put dummy data on the stack
+	BNE _NEXT
+_ERR	PHA		; put dummy data on the stack
 	PHA
 SHLERR	
 	LDY #SYNTAX
@@ -276,9 +277,9 @@ TOSTRT			; set LINEL,H and CURLNL,H to the start
 PANIC
 	JSR SHINIT
 	LDA ARGS+2
-	BNE .SKIP
+	BNE _SKIP
 	LDA #$01
-.SKIP	STA (SRCSTL),Y	; Y is $00 from SHINIT
+_SKIP	STA (SRCSTL),Y	; Y is $00 from SHINIT
 	RTS
 
 ; ****************************************
@@ -304,14 +305,14 @@ RUN
 ADDARG			; convert argument to address
 	LDX #$02
 	LDA ARGS,X
-	BEQ .NOARG
+	BEQ _NOARG
 	PHA
 	JSR EVAL
 	PLA
 	;CPX #FAIL
 	INX
 	BEQ ERR2;SHLERR
-.NOARG	RTS
+_NOARG	RTS
 
 ; ****************************************
 
@@ -337,9 +338,9 @@ FILLSP
 	LDA #SP
 FILBUF			; fill the buffer with the contents of A
 	LDX #LINESZ
-.CLR	STA IOBUF-1,X
+_CLR	STA <(IOBUF-1),X
 	DEX
-	BNE .CLR
+	BNE _CLR
 	RTS
 	
 ; ****************************************
@@ -363,35 +364,35 @@ LIST			; L 	- list all
 			; L nnn - list from line nnn
 	JSR TOSTRT
 	JSR GETARG
-	BEQ .NEXT	; no args, list from start
+	BEQ _NEXT	; no args, list from start
 	JSR GOTOLN	; deal with arguments if necessary
-.NEXT	LDY #$00
+_NEXT	LDY #$00
 	LDA (CURLNL),Y
-	BEQ .RET
+	BEQ _RET
 	JSR PRNTLN
 	JSR UPDTCL
 	LDA KBDRDY
 	.if APPLE1
-	BPL .NEXT
+	BPL _NEXT
 	.else
-	BEQ .NEXT
+	BEQ _NEXT
 	.endif
 	LDA KBD
-.RET	RTS
-	
+_RET	RTS
+
 ; ****************************************
 
 MEM	
 	JSR TOEND	; set CURLNL,H to the end
 	JSR CRLF	
 	LDX #$04
-.LOOP	LDA CURLNL-1,X
+_LOOP	LDA CURLNL-1,X
 	JSR OUTHEX
 	CPX #$03
-	BNE .SKIP
+	BNE _SKIP
 	JSR PRDASH
-.SKIP	DEX
-	BNE .LOOP
+_SKIP	DEX
+	BNE _LOOP
 RET	RTS
 
 ; ****************************************
@@ -403,15 +404,15 @@ GETARG			; get the one or two numeric arguments
 	LDY #$00
 	STY YSAV
 	LDX #$01
-.NEXT	LDA ARGS,X
-	BEQ .DONE	; null terminator
+_NEXT	LDA ARGS,X
+	BEQ _DONE	; null terminator
 	CMP #SP		; find the space
-	BEQ .CVT
+	BEQ _CVT
 	CMP #HEX	; or $ symbol
-	BEQ .CVT
+	BEQ _CVT
 	INX
-	BNE .NEXT
-.CVT	INC YSAV	; count args
+	BNE _NEXT
+_CVT	INC YSAV	; count args
 	LDA #HEX
 	STA ARGS,X	; replace the space with '$' and convert
 	JSR CONVRT
@@ -425,8 +426,8 @@ GETARG			; get the one or two numeric arguments
 	LDA LVALH
 	STA TEMP1,Y
 	INY
-	BNE .NEXT	; always branches
-.DONE	LDY YSAV
+	BNE _NEXT	; always branches
+_DONE	LDY YSAV
 	RTS		; m in TEMP1,2, n in TEMP3,4
 	
 ; ****************************************
@@ -449,12 +450,12 @@ INSERT
 	BEQ LCLERR
 	;CPY #$00	; no args
 	TYA
-	BNE .ARGS
+	BNE _ARGS
 	JSR TOEND	; insert at the end
 	CLC
-	BCC .IN
-.ARGS	JSR GOTOLN	; if no such line will insert at end
-.IN	JSR INPUT	; Get one line
+	BCC _IN
+_ARGS	JSR GOTOLN	; if no such line will insert at end
+_IN	JSR INPUT	; Get one line
 	CPX #FAIL	; Was there an error?
 	BEQ RET;
 	; Save the tokenised line and update pointers
@@ -469,20 +470,20 @@ INSERT
 	CLC
 	ADC XSAV
 	STA MISC2L
-	BCC .READY
+	BCC _READY
 	INC MISC2H	; MISC2L,H is destination
-.READY	JSR GETSZ
+_READY	JSR GETSZ
 	JSR MOVEUP	; do the move
 	LDY #$00
 	; now move the line to the source storage area
 	; Y bytes, from IOBUF to CURLN
-.MOVE	LDA IOBUF,Y
+_MOVE	LDA IOBUF,Y
 	STA (CURLNL),Y
 	INY
 	CPY XSAV
-	BNE .MOVE
+	BNE _MOVE
 	JSR UPDTCL	; update CURLNL,H
-	BNE .IN		; always branches
+	BNE _IN		; always branches
 
 ; ****************************************
 
@@ -494,10 +495,10 @@ LCLERR			; local error wrapper
 
 GETSZ			; SIZE = TEMP1,2 = lastlnL,H - MISCL,H + 1
 	LDX #-$04
-.LOOP	LDA CURLNH+1,X
+_LOOP	LDA CURLNH+1,X
 	PHA		; save CURLN and LINEN on the stack
 	INX
-	BNE .LOOP
+	BNE _LOOP
 	JSR TOEND
 	SEC
 	LDA CURLNL
@@ -507,13 +508,13 @@ GETSZ			; SIZE = TEMP1,2 = lastlnL,H - MISCL,H + 1
 	SBC MISCH
 	STA TEMP2
 	INC TEMP1
-	BNE .SKIP
+	BNE _SKIP
 	INC TEMP2
-.SKIP	LDX #$04
-.LOOP2	PLA		; get CURLN and LINEN from the stack
+_SKIP	LDX #$04
+_LOOP2	PLA		; get CURLN and LINEN from the stack
 	STA LINEL-1,X
 	DEX
-	BNE .LOOP2
+	BNE _LOOP2
 	RTS
 	
 ; ****************************************
@@ -525,7 +526,7 @@ DELETE			; Delete the specified range
 ;	CPY #$00
 	BEQ LCLERR
 	STY YSAV
-.DOIT	JSR GOTOLN	; this leaves TEMP1 in Y and TEMP2 in X
+_DOIT	JSR GOTOLN	; this leaves TEMP1 in Y and TEMP2 in X
 	CPX #FAIL
 	BEQ LCLERR
 	LDA CURLNL
@@ -535,17 +536,17 @@ DELETE			; Delete the specified range
 	LDA YSAV
 	;CMP #$01
 	LSR
-	BEQ .INC
+	BEQ _INC
 	LDX TEMP4
 	LDY TEMP3	; Validate the range arguments
 	CPX TEMP2	; First compare high bytes
-	BNE .CHK	; If TEMP4 != TEMP2, we just need to check carry
+	BNE _CHK	; If TEMP4 != TEMP2, we just need to check carry
 	CPY TEMP1	; Compare low bytes when needed
-.CHK	BCC LCLERR	; If carry clear, 2nd argument is too low
-.INC	INY		; Now increment the second argument
-	BNE .CONT
+_CHK	BCC LCLERR	; If carry clear, 2nd argument is too low
+_INC	INY		; Now increment the second argument
+	BNE _CONT
 	INX
-.CONT	STX TEMP2
+_CONT	STX TEMP2
 	STY TEMP1
 	JSR GOTOLN
 	LDA CURLNL
@@ -571,24 +572,24 @@ SIZEH	=TEMP2
 MOVEDN			; Move memory down
 	LDY #$00
 	LDX SIZEH
-	BEQ .MD2
-.MD1	LDA (FROM),Y ; move a page at a time
+	BEQ _MD2
+_MD1	LDA (FROM),Y ; move a page at a time
 	STA (TO),Y
 	INY
-	BNE .MD1
+	BNE _MD1
 	INC FROM+1
 	INC TO+1
 	DEX
-	BNE .MD1
-.MD2	LDX SIZEL
-	BEQ .MD4
-.MD3	LDA (FROM),Y ; move the remaining bytes
+	BNE _MD1
+_MD2	LDX SIZEL
+	BEQ _MD4
+_MD3	LDA (FROM),Y ; move the remaining bytes
 	STA (TO),Y
 	INY
 	DEX
-	BNE .MD3
-.MD4	RTS
-	
+	BNE _MD3
+_MD4	RTS
+
 MOVEUP			; Move memory up
 	LDX SIZEH	; the last byte must be moved first
 	CLC		; start at the final pages of FROM and TO
@@ -601,21 +602,21 @@ MOVEUP			; Move memory up
 	STA TO+1
 	INX		; allows the use of BNE after the DEX below
 	LDY SIZEL
-	BEQ .MU3
+	BEQ _MU3
 	DEY		; move bytes on the last page first
-	BEQ .MU2
-.MU1	LDA (FROM),Y
+	BEQ _MU2
+_MU1	LDA (FROM),Y
 	STA (TO),Y
 	DEY
-	BNE .MU1
-.MU2	LDA (FROM),Y	; handle Y = 0 separately
+	BNE _MU1
+_MU2	LDA (FROM),Y	; handle Y = 0 separately
 	STA (TO),Y
-.MU3	DEY
+_MU3	DEY
 	DEC FROM+1	; move the next page (if any)
 	DEC TO+1
 	DEX
-	BNE .MU1
-	RTS       
+	BNE _MU1
+	RTS
 
 ; ****************************************
 
@@ -635,28 +636,28 @@ GOTOLN			; go to line number given in TEMP1,2
 EOP	= LFAIL
 GOTIT	= LRET
 	JSR TOSTRT
-.NXTLN			; is the current line number the same 
+_NXTLN			; is the current line number the same
 			; as specified in TEMP1,2?
 			; Z set if equal
 			; C set if TEMP1,2 >= LINEL,H 
 	LDY TEMP1
 	CPY LINEL
-	BNE .NO
+	BNE _NO
 	LDX TEMP2
 	CPX LINEH
 	BEQ GOTIT
-.NO	LDY #$FF
-.NXTBT	INY		; find EOL
+_NO	LDY #$FF
+_NXTBT	INY		; find EOL
 	LDA (CURLNL),Y
-	BNE .NXTBT
+	BNE _NXTBT
 	TYA
 	;CPY #$00
 	BEQ EOP		; null at start of line => end of program
 	INY
 	JSR UPDTCL	; increment CURLNL,H by Y bytes
-	BNE .NXTLN	; always branches
-;.EOP	LDX #FAIL
-;.GOTIT	RTS		; address is now in CURLNL,H
+	BNE _NXTLN	; always branches
+;_EOP	LDX #FAIL
+;_GOTIT	RTS		; address is now in CURLNL,H
 
 ; ****************************************
 
@@ -667,13 +668,13 @@ PRNTLN			; print out the current line (preserve X)
 	INY
 	JSR PRLNNM
 	LDX #$00
-.PRINT	LDA LABEL,X
-	BEQ .DONE	; null terminator
+_PRINT	LDA LABEL,X
+	BEQ _DONE	; null terminator
 	JSR OUTCH
 	INX
 	;CPX #USESZ
-	BNE .PRINT
-.DONE	LDX XSAV
+	BNE _PRINT
+_DONE	LDX XSAV
 	RTS
 		
 ; ****************************************
@@ -684,10 +685,10 @@ NEXTCH			; Check for valid character in A
 	JSR GETCH
 	.if TABTOSPACE
 	CMP #$09	; is it a tab?
-	BNE .SKIP
+	BNE _SKIP
 	LDA #SP
 	.endif
-.SKIP	CMP #SP		; valid ASCII range is $20 to $5D
+_SKIP	CMP #SP		; valid ASCII range is $20 to $5D
 	BPL CHANM	; check alpha numeric entries
 	TAY
 	PLA
@@ -696,7 +697,7 @@ NEXTCH			; Check for valid character in A
 	PLA		; wipe out return addresses
 	CPY #BS
 	BEQ INPUT	; just do it all again
-.NOBS	CPY #CR
+_NOBS	CPY #CR
 	BNE LFAIL
 	CPX #LABEL	; CR at start of LABEL means a blank line
 	BEQ DOBLNK
@@ -746,13 +747,13 @@ INPUT
 	JSR INSSPC	; Move to mnemonic field
 	LDA LABEL
 	CMP #CMNT
-	BEQ .CMNT
+	BEQ _CMNT
 	LDA #ENDMNE
 	JSR ONEFLD
 	JSR INSSPC	; Move to args field
 	LDA #ENDARG
 	JSR ONEFLD
-.CMNT	LDA #EOL
+_CMNT	LDA #EOL
 	JSR ONEFLD
 GOTEOL	;JMP TOTKN	
 ; falls through
@@ -773,11 +774,11 @@ TOTKN			; tokenise to IOBUF to calc size
 	JSR TKNISE
 	LDY LABEL
 	CPY #CMNT
-	BNE .CONT
+	BNE _CONT
 	LDA #MNE
 	BNE ISCMNT	; always branches
-.CONT	TXA		; save X
-	PHA		
+_CONT	TXA		; save X
+	PHA
 
 ;	JSR SRCHMN	; is it a mnemonic?
 
@@ -790,48 +791,48 @@ CMPMNE			; compress the 3 char mnemonic
 	CLC
 	ROR LMNE		
 	LDX #$03
-.NEXT2	SEC
+_NEXT2	SEC
 	LDA MNE-1,X
 	SBC #'A'-1
 	LDY #$05
-.LOOP2	LSR
+_LOOP2	LSR
 	ROR LMNE
 	ROR RMNE
 	DEY
-	BNE .LOOP2
+	BNE _LOOP2
 	DEX
-	BNE .NEXT2
+	BNE _NEXT2
 
 	LDX #NUMMN	; Number of mnemonics
-.LOOP	LDA LMNETB-1,X
+_LOOP	LDA LMNETB-1,X
 	CMP LMNE
-	BNE .NXT
+	BNE _NXT
 	LDA RMNETB-1,X
 	CMP RMNE
-	BEQ .FND
-.NXT	DEX
-	BNE .LOOP
-.FND	DEX		; X = $FF for failure
+	BEQ _FND
+_NXT	DEX
+	BNE _LOOP
+_FND	DEX		; X = $FF for failure
 ;	RTS
 	
 	TXA
 	CMP #FAIL
-	BNE .FOUND
+	BNE _FOUND
 	LDA MNE		; or a directive?
 	CMP #DOT
-	BNE .ERR
+	BNE _ERR
 	LDX #NUMDIR
 	LDA MNE+1
-.NEXT	CMP DIRS-1,X
-	BEQ .FDIR
+_NEXT	CMP DIRS-1,X
+	BEQ _FDIR
 	DEX
-	BNE .NEXT
-.ERR	PLA
+	BNE _NEXT
+_ERR	PLA
 	LDY #INVMNE
 	JMP SHWERR
-.FDIR	DEX
-.FOUND	TAY		; put mnemonic/directive code in Y
-	INY		; offset by 1 so no code $00	
+_FDIR	DEX
+_FOUND	TAY		; put mnemonic/directive code in Y
+	INY		; offset by 1 so no code $00
 	PLA		; restore Y
 	TAX
 	STY IOBUF,X
@@ -850,58 +851,58 @@ ISCMNT	STA MISCL
 	STA TEMP2
 	JSR TKNISE
 	CPX XSAV
-	BNE .RET
+	BNE _RET
 	DEX		; no args or comments, so stop early
-	STA IOBUF-1,X	; A already holds $00
-.RET 	RTS	
-	
+	STA <(IOBUF-1),X	; A already holds $00
+_RET 	RTS
+
 ONEFLD			; do one entry field
 			; A holds the end point for the field
 	STA TEMP1	; last position
-.NEXT	JSR NEXTCH	; catches ESC, CR and BS
-	BCC .NEXT	; only allow legal keys
+_NEXT	JSR NEXTCH	; catches ESC, CR and BS
+	BCC _NEXT	; only allow legal keys
 	JSR OUTCH	; echo
 	STA IOBUF,X
 	INX
 	CMP #SP
-	BEQ .FILL
+	BEQ _FILL
 	CPX TEMP1
-	BNE .NEXT
-.RET	RTS
-.FILL	LDA TEMP1
-	BEQ .NEXT	; just treat a space normally
+	BNE _NEXT
+_RET	RTS
+_FILL	LDA TEMP1
+	BEQ _NEXT	; just treat a space normally
 	CPX TEMP1	; fill spaces
-	BEQ .RET
+	BEQ _RET
 	LDA #SP
 	STA IOBUF,X
 	JSR OUTCH
-.CONT	INX
-	BNE .FILL	; always branches
+_CONT	INX
+	BNE _FILL	; always branches
 
 ; ****************************************
 	
 INSSPC	
-	LDA IOBUF-1,X	; was previous character a space?
+	LDA <(IOBUF-1),X	; was previous character a space?
 	CMP #SP
-	BEQ .JUMP
-.GET	JSR NEXTCH	; handles BS, CR and ESC
+	BEQ _JUMP
+_GET	JSR NEXTCH	; handles BS, CR and ESC
 	CMP #SP
-	BNE .GET	; only let SP through
-.JUMP	STA IOBUF,X	; insert the space
+	BNE _GET	; only let SP through
+_JUMP	STA IOBUF,X	; insert the space
 	INX
 	JMP OUTCH
 
 TKNISE	
 	LDY #$00
-.NEXT	LDA (MISCL),Y
-	BEQ .EOF
+_NEXT	LDA (MISCL),Y
+	BEQ _EOF
 	CMP TEMP2
-	BEQ .EOF	; null terminator
+	BEQ _EOF	; null terminator
 	STA IOBUF,X
 	INX
 	INC MISCL
-	BNE .NEXT
-.EOF	LDA TEMP1
+	BNE _NEXT
+_EOF	LDA TEMP1
 	STA IOBUF,X
 	INX
 	RTS
@@ -914,55 +915,55 @@ DETKN			; Load a line to the IOBUF
 	JSR FILLSP
 	LDY #$00
 	LDX #LABEL
-.LBL	LDA (CURLNL),Y
-	BEQ .EOP	; indicates end of program
+_LBL	LDA (CURLNL),Y
+	BEQ _EOP	; indicates end of program
 	CMP #BLANK
-	BNE .SKIP
+	BNE _SKIP
 	INY
 	LDA #EOL
-	BEQ .EOL
-.SKIP	CMP #EOFLD
-	BEQ .CHK
+	BEQ _EOL
+_SKIP	CMP #EOFLD
+	BEQ _CHK
 	STA IOBUF,X
 	INX
 	INY
-	BNE .LBL
-.CHK	LDA LABEL
+	BNE _LBL
+_CHK	LDA LABEL
 	CMP #CMNT
-	BNE .NEXT
+	BNE _NEXT
 	LDX #MNE
-	BNE .CMNT	; always branches
-.NEXT	INY
+	BNE _CMNT	; always branches
+_NEXT	INY
 	LDA (CURLNL),Y	; get mnemonic code
 	TAX
 	DEX		; correct for offset in tokenise
 	STX CURMNE	; store mnemonic for assembler
 	CPX #NUMMN
-	BPL .DIR
+	BPL _DIR
 	TYA		; save Y
 	PHA	
 	JSR EXPMNE
 	PLA		; restore Y
 	TAY
-	BNE .REST
-.DIR	STX MNE+1
+	BNE _REST
+_DIR	STX MNE+1
 	LDA #DOT
 	STA MNE
-.REST	INY
+_REST	INY
 	LDX #ARGS	; point to ARGS area
-.LOOP	LDA (CURLNL),Y
-	BEQ .EOL	; indicates end of line
+_LOOP	LDA (CURLNL),Y
+	BEQ _EOL	; indicates end of line
 	CMP #EOFLD
-	BNE .CONT
+	BNE _CONT
 	INY
 	LDX #COMM	; point to COMM area
-	BNE .LOOP
-.CONT	STA IOBUF,X
+	BNE _LOOP
+_CONT	STA IOBUF,X
 	INX
-.CMNT	INY
-	BNE .LOOP
-.EOP	LDX #PRGEND
-.EOL	STA IOBUF,X
+_CMNT	INY
+	BNE _LOOP
+_EOP	LDX #PRGEND
+_EOL	STA IOBUF,X
 	RTS
 
 ; ****************************************
@@ -973,19 +974,19 @@ ASSEM			; Run an assembly
 	JSR INIT	; Set the default values
 	JSR CRLF
 	JSR MYPRPC
-.NEXT	JSR DO1LN	; line is in the buffer - parse it
+_NEXT	JSR DO1LN	; line is in the buffer - parse it
 	;CPX #FAIL
 	INX
 	BEQ SHWERR
 	CPX #PRGEND+1	; +1 because of INX above
-	BNE .NEXT
+	BNE _NEXT
 	INC FRFLAG	; have to resolve them all now - this ensures FRFLAG nonzero
 	JSR PATCH	; back patch any remaining forward references
 	;CPX #FAIL
 	INX
 	BEQ SHWERR
 	JMP MYPRPC	; output finishing module end address
-;.ERR	JMP SHWERR
+;_ERR	JMP SHWERR
 
 ; ****************************************
 
@@ -993,34 +994,34 @@ SHWERR			; Show message for error with id in Y
 			; Also display line if appropriate
 	JSR CRLF
 	LDX #ERPRSZ
-.NEXT	LDA ERRPRE-1,X
+_NEXT	LDA ERRPRE-1,X
 	JSR OUTCH
 	DEX
-	BNE .NEXT
+	BNE _NEXT
 	TYA
 	.if UNK_ERR_CHECK
-	BEQ .SKIP
+	BEQ _SKIP
 	CPY #MAXERR+1
-	BCC .SHOW	; If error code valid, show req'd string
-.UNKWN	LDY #UNKERR	; else show unknown error
- 	BEQ .SKIP
+	BCC _SHOW	; If error code valid, show req'd string
+_UNKWN	LDY #UNKERR	; else show unknown error
+ 	BEQ _SKIP
  	.endif
-.SHOW	CLC
+_SHOW	CLC
 	TXA		; sets A to zero
-.ADD	ADC #EMSGSZ
+_ADD	ADC #EMSGSZ
 	DEY
-	BNE .ADD
+	BNE _ADD
 	TAY
-.SKIP	LDX #EMSGSZ	
+_SKIP	LDX #EMSGSZ	
 	.if UNK_ERR_CHECK
-.LOOP	LDA ERRMSG,Y
+_LOOP	LDA ERRMSG,Y
 	.else
-.LOOP	LDA ERRMSG-EMSGSZ,Y
+_LOOP	LDA ERRMSG-EMSGSZ,Y
 	.endif
 	JSR OUTCH
 	INY
 	DEX
-	BNE .LOOP
+	BNE _LOOP
 	;LDX #FAIL
 	DEX		; sets X = #FAIL
 	LDA ERFLAG
@@ -1060,9 +1061,9 @@ RET1	RTS
 DO1LN	
 	JSR DETKN
 	CPX #PRGEND
-	BEQ .ENDPR
+	BEQ _ENDPR
 	CPX #LABEL	; means we are still at the first field => blank line
-	BEQ .DONE
+	BEQ _DONE
 	LDA #$00
 	STA ERFLAG
 	STA FRFLAG
@@ -1070,13 +1071,13 @@ DO1LN
 	JSR PARSE
 	CPX #FAIL
 	BEQ DORTS
-.CONT	LDY #$00
-.LOOP	LDA (CURLNL),Y
-	BEQ .DONE
+_CONT	LDY #$00
+_LOOP	LDA (CURLNL),Y
+	BEQ _DONE
 	INY
-	BNE .LOOP
-.DONE	INY		; one more to skip the null
-.ENDPR	;JMP UPDTCL
+	BNE _LOOP
+_DONE	INY		; one more to skip the null
+_ENDPR	;JMP UPDTCL
 ; falls through
 
 ; ****************************************
@@ -1107,32 +1108,32 @@ MKOBJC			; MNE is in CURMNE, addr mode is in CURADM
 	CLC
 	ADC OFFSET,X	; add in the offset
 	CPX #ABY	; handle exception
-	BEQ .CHABY
+	BEQ _CHABY
 	CPX #IMM
-	BNE .CONT
+	BNE _CONT
 	CPY #$28	; immediate mode need to adjust a range
-	BMI .CONT
+	BMI _CONT
 	CPY #$2F+1
-	BCS .CONT
+	BCS _CONT
 	ADC #ADJIMM	; carry is clear
-	;BNE .CONT	
-.CHABY	CPY #$35
-	BNE .CONT
+;	BNE _CONT
+_CHABY	CPY #$35
+	BNE _CONT
 	CLC
 	ADC #ADJABY
-.CONT	JSR DOBYTE	; we have the object code
-	.IF BRKAS2
+_CONT	JSR DOBYTE	; we have the object code
+	.if BRKAS2
 	CMP #$00
-	BNE .MKARG
+	BNE _MKARG
 	JSR DOBYTE
-	.ENDIF
-.MKARG			; where appropriate, the arg value is in LVALL,H
+	.endif
+_MKARG			; where appropriate, the arg value is in LVALL,H
 			; copy to ARGS and null terminate
 	TXA		; quick check for X=0
 	BEQ DORTS	; IMP - no args
 	DEX
 	BEQ DORTS	; ACC - no args
-	LDA LVALL	; needed for .BYT handling
+	LDA LVALL	; needed for _BYT handling
 	; word arg if X is greater than or equal to ABS
 	CPX #ABS-1
 	BMI DOBYTE	; X < #ABS	
@@ -1147,9 +1148,9 @@ DOBYTE	LDY #$00
 
 INCPC			; increment the PC
 	INC CURPCL
-	BNE .DONE	; any carry?
+	BNE _DONE	; any carry?
 	INC CURPCH	; yes
-.DONE	RTS
+_DONE	RTS
 
 ; ****************************************
 	
@@ -1166,17 +1167,17 @@ PARSE			; Parse one line and validate
 	BEQ DORTS	; ignore comment lines
 	LDX MNE		; first need to check for an equate
 	CPX #DOT
-	BNE .NOEQU
+	BNE _NOEQU
 	LDX MNE+1
 	CPX #MOD	; Do we have a new module?
-	BNE .NOMOD
+	BNE _NOMOD
 	JMP DOMOD
-.NOMOD	CPX #EQU
+_NOMOD	CPX #EQU
 	BEQ DOEQU
-.NOEQU	CMP #SP		; Is there a label?
-	BEQ .NOLABL	
+_NOEQU	CMP #SP		; Is there a label?
+	BEQ _NOLABL	
 	JSR PCSYM	; save the symbol value - in this case it is the PC
-.NOLABL	LDA MNE		
+_NOLABL	LDA MNE		
 	CMP #DOT	; do we have a directive?
 	BNE CALCAM 	; no
 	
@@ -1204,14 +1205,14 @@ DIRERR	LDY #SYNTAX
 DOSTR	LDA ARGS,X
 	CMP #QUOTE
 	BNE DIRERR	; String invalid
-.LOOP	INX
+_LOOP	INX
 	LDA ARGS,X
 	BEQ DIRERR	; end found before string closed - error
 	CMP #QUOTE
 	BEQ DIROK
 	JSR DOBYTE	; just copy over the bytes
 	CPX #ARGSZ	; can't go over the size limit
-	BNE .LOOP
+	BNE _LOOP
 	BEQ DIRERR	; hit the limit without a closing quote - error
 DIROK	RTS
 
@@ -1237,10 +1238,10 @@ DOMOD			; Do we have a new module?
 	BCC DIRERR
 	LDY #$00
 	LDA ARGS
-	BEQ .STORE
+	BEQ _STORE
 	CMP #SP
-	BEQ .STORE
-.SETPC	JSR ATOFR	; output finishing module end address (+1)
+	BEQ _STORE
+_SETPC	JSR ATOFR	; output finishing module end address (+1)
 	LDX #$00	; set a new value for the PC from the args
 	LDA ARGS
 	JSR CONVRT
@@ -1248,7 +1249,7 @@ DOMOD			; Do we have a new module?
 	INX
 	BEQ DIRERR
 	JSR LVTOPC
-.STORE	JSR PCSYM
+_STORE	JSR PCSYM
 	CPX #FAIL
 	BEQ DIROK
 	JSR PATCH
@@ -1282,43 +1283,43 @@ MYPRPC
 	LDA CURPCH
 	LDX CURPCL
 	LDY FRFLAG	; flag set => print dash and minus 1
-	BEQ .NODEC
+	BEQ _NODEC
 	PHA
 	JSR PRDASH
 	PLA
 	CPX #$00
-	BNE .SKIP	; is X zero?
+	BNE _SKIP	; is X zero?
 	SEC
 	SBC #$01
-.SKIP	DEX
-.NODEC	JMP PRNTAX
+_SKIP	DEX
+_NODEC	JMP PRNTAX
 
 ; ****************************************
 
 PATCH			; back patch in the forward reference symbols
 			; all are words
 	LDX NFREF
-	BEQ .RET	; nothing to do
+	BEQ _RET	; nothing to do
 	STX ERFLAG	; set flag
-.STRPC	STX NPTCH
+_STRPC	STX NPTCH
 	LDA CURPCL	; save the PC on the stack
 	PHA
 	LDA CURPCH
 	PHA	
 	JSR INITFR
-.NEXT	LDY #$00
+_NEXT	LDY #$00
 	LDA FRFLAG
 	STA FLGSAV	; so I can restore the FREF flag
 	STY HADFRF
 	LDA (PTCHTL),Y
 	CMP #DOT
-	BNE .LOOP
+	BNE _LOOP
 	STA FRFLAG	; nonzero means must resolve local symbols
-.LOOP	LDA (PTCHTL),Y	; copy symbol to COMM
+_LOOP	LDA (PTCHTL),Y	; copy symbol to COMM
 	STA COMM,Y
 	INY
 	CPY #SYMSZ
-	BNE .LOOP
+	BNE _LOOP
 	LDA (PTCHTL),Y	; get the PC for this symbol
 	STA CURPCL
 	INY
@@ -1329,53 +1330,53 @@ PATCH			; back patch in the forward reference symbols
 	STA TEMP1	; save any offset value
 	JSR DOLVAL	; get the symbols true value
 	CPX #FAIL	; value now in LVALL,H or error
-	BEQ .ERR	
+	BEQ _ERR	
 	LDA HADFRF	; if we have a persistent FREF
-	BEQ .CONT	; need to copy its offset as well
+	BEQ _CONT	; need to copy its offset as well
 	LDA TEMP1  
 	STA (MISCL),Y	; falls through to some meaningless patching...
 	;SEC		; unless I put these two in
-	;BCS .MORE
-.CONT	JSR ADD16X	
+	;BCS _MORE
+_CONT	JSR ADD16X	
 	LDY #$00
 	LDA (CURPCL),Y	; get the opcode
 	AND #$1F	; check for branch opcode - format XXY10000
 	CMP #$10
-	BEQ .BRA
+	BEQ _BRA
 	JSR INCPC	; skip the opcode
-.SKIP	LDA LVALL
+_SKIP	LDA LVALL
 	JSR DOWORD
-.MORE	CLC
+_MORE	CLC
 	LDA PTCHTL	; move to the next symbol
 	ADC #SYMSZ+3
 	STA PTCHTL
-	BCC .DECN
+	BCC _DECN
 	INC PTCHTH
-.DECN	LDA FLGSAV
+_DECN	LDA FLGSAV
 	STA FRFLAG
 	DEC NPTCH
-	BNE .NEXT
-.DONE	PLA
+	BNE _NEXT
+_DONE	PLA
 	STA CURPCH	; restore the PC from the stack
 	PLA
 	STA CURPCL
-.RET	RTS
-.BRA	JSR ADDOFF	; BRA instructions have a 1 byte offset argument only
+_RET	RTS
+_BRA	JSR ADDOFF	; BRA instructions have a 1 byte offset argument only
 	CPX #FAIL
-	BEQ .ERR
+	BEQ _ERR
 	LDY #$01	; save the offset at PC + 1
 	LDA LVALL
 	STA (CURPCL),Y
-	JMP .MORE
-.ERR	LDY #$00
+	JMP _MORE
+_ERR	LDY #$00
 	JSR OUTSP
-.LOOP2	LDA (PTCHTL),Y	; Show symbol that failed
+_LOOP2	LDA (PTCHTL),Y	; Show symbol that failed
 	JSR OUTCH
 	INY
 	CPY #SYMSZ
-	BNE .LOOP2
+	BNE _LOOP2
 	DEY		; Since #UNKSYM = #SYMSZ - 1
-	BNE .DONE	; always branches
+	BNE _DONE	; always branches
 	
 ; ****************************************
 
@@ -1386,32 +1387,32 @@ ADDMOD			; Check the arguments and work out the
 	STX CURADM	; save it
 	LDA CURMNE
 	LDX ARGS	; Start checking the format...
-	BEQ .EOL
+	BEQ _EOL
 	CPX #SP
-	BNE .NOTSP
-.EOL	LDX #IMP	; implied mode - space
+	BNE _NOTSP
+_EOL	LDX #IMP	; implied mode - space
 	JSR CHKMOD	; check command is ok with this mode
 	CPX #FAIL	; not ok
-	BNE .RET	; may still be accumulator mode though
+	BNE _RET	; may still be accumulator mode though
 	LDX #ACC	; accumulator mode - space
 	JMP CHKMOD	; check command is ok with this mode
-.NOTSP	CPX #IMV	; immediate mode - '#'
-	BEQ .DOIMM
+_NOTSP	CPX #IMV	; immediate mode - '#'
+	BEQ _DOIMM
 	LDX #REL
 	JSR CHKMOD	; check if command is a branch
 	CPX #FAIL
-	BEQ .NOTREL
+	BEQ _NOTREL
 	LDA ARGS
 	JMP DOREL
-.DOIMM	CMP #$2C	; check exception first - STA
+_DOIMM	CMP #$2C	; check exception first - STA
 	BEQ BAD
 	LDX #IMM
 	CMP #$35	; check inclusion first - STX
-	BEQ .IMMOK
+	BEQ _IMMOK
 	JSR CHKMOD	; check command is ok with this mode
 	CPX #FAIL
-	BEQ .RET
-.IMMOK	STX CURADM	; handle immediate mode
+	BEQ _RET
+_IMMOK	STX CURADM	; handle immediate mode
 	;LDX #01	; skip the '#'
 	DEX		; X == IMM == 2
 	JSR QTEVAL
@@ -1420,18 +1421,18 @@ ADDMOD			; Check the arguments and work out the
 	LDA LVALH
 	BNE BAD
 	;LDX #IMM
-.RET	RTS
-.NOTREL LDX #0		; check the more complicated modes
+_RET	RTS
+_NOTREL LDX #0		; check the more complicated modes
 	LDA ARGS
 	CMP #OPEN	; indirection?
-	BNE .CONT	; no
+	BNE _CONT	; no
 	INX		; skip the '('
-.CONT	JSR EVAL
+_CONT	JSR EVAL
 	CPX #FAIL
-	BEQ .RET
+	BEQ _RET
 	JSR FMT2AM	; calculate the addressing mode from the format
 	CPX #FAIL
-	BEQ .RET
+	BEQ _RET
 	STX CURADM
 ;	JMP CHKEXS
 ; falls through
@@ -1440,26 +1441,26 @@ ADDMOD			; Check the arguments and work out the
 
 CHKEXS			; Current addressing mode is in X
 	CPX #ZPY	; for MNE indices 28 to 2F, ZPY is illegal
-	BNE .CONT	; but ABY is ok, so promote byte argument to word
+	BNE _CONT	; but ABY is ok, so promote byte argument to word
 	LDA CURMNE
 	CMP #$28
-	BCC .CONT
+	BCC _CONT
 	CMP #$2F+1
-	BCS .CONT	
+	BCS _CONT	
 	LDX #ABY	; updated addressing mode
 	BNE OK
-.CONT	LDY #SPCNT	; check special includes
-.LOOP	LDA SPINC1-1,Y	; load mnemonic code
+_CONT	LDY #SPCNT	; check special includes
+_LOOP	LDA SPINC1-1,Y	; load mnemonic code
 	CMP CURMNE
-	BNE .NEXT
+	BNE _NEXT
 	LDX SPINC2-1,Y	; load addressing mode
 	CPX CURADM
 	BEQ OK		; match - so ok
 	LDX SPINC3-1,Y	; load addressing mode
 	CPX CURADM
 	BEQ OK		; match - so ok
-.NEXT	DEY
-	BNE .LOOP
+_NEXT	DEY
+	BNE _LOOP
 	LDX CURADM
 ;	BNE CHKMOD	; wasn't in the exceptions table - check normally
 ; falls through
@@ -1539,24 +1540,24 @@ DOPLMN			; handle a plus/minus expression
 	LDA ARGS,X	; first calculate the value of the byte
 	JSR BYT2HX
 	CPX #FAIL
-	BNE .CONT
+	BNE _CONT
 	PLA
 ;	LDX #FAIL	; X is already $FF
-.RET	RTS
-.CONT	STA TEMP1	; store the value of the byte in TEMP1
+_RET	RTS
+_CONT	STA TEMP1	; store the value of the byte in TEMP1
 	PLA
 	CMP #PLUS
-	BEQ .NONEG
+	BEQ _NONEG
 	LDA TEMP1
 	CLC		; for minus, need to negate it
 	EOR #$FF
 	ADC #$1
 	STA TEMP1
-.NONEG	LDA HADFRF
-	BEQ .SKIP
+_NONEG	LDA HADFRF
+	BEQ _SKIP
 	LDA TEMP1	; save the offset for use when patching
 	STA (MISCL),Y	
-.SKIP	;JMP ADD16X
+_SKIP	;JMP ADD16X
 ; falls through
 
 ; ****************************************
@@ -1565,14 +1566,14 @@ ADD16X			; Add a signed 8 bit number in TEMP1
 			; to a 16 bit number in LVALL,H
 			; preserve X (thanks leeeeee, www.6502.org/forum)
 	LDA TEMP1	; signed 8 bit number
-	BPL .CONT
+	BPL _CONT
 	DEC LVALH	; bit 7 was set, so it's a negative
-.CONT	CLC	
+_CONT	CLC	
 	ADC LVALL
 	STA LVALL	; update the stored number low byte
-	BCC .EXIT
+	BCC _EXIT
 	INC LVALH	; update the stored number high byte
-.EXIT	RTS
+_EXIT	RTS
 
 ; ****************************************
 
@@ -1583,19 +1584,19 @@ EVAL			; Evaluate an argument expression
 	STX TEMP3	; store start of the expression
 	LDA ARGS,X
 	CMP #LOBYTE
-	BEQ .HASOP
+	BEQ _HASOP
 	CMP #HIBYTE
-	BNE .DOLBL
-.HASOP	STA FRFLAG	; disables forward references when there
+	BNE _DOLBL
+_HASOP	STA FRFLAG	; disables forward references when there
 	INX		; is a '<' or a '>' in the expression
 	LDA ARGS,X
-.DOLBL	JSR CHKLBL	; is there a label?
-	BCS .LBL	; yes - get its value
+_DOLBL	JSR CHKLBL	; is there a label?
+	BCS _LBL	; yes - get its value
 	JSR CONVRT	; convert the ASCII
 	CPX #FAIL
 	BEQ XERR	
 	BNE XCONT	
-.LBL	STX XSAV	; move X to Y
+_LBL	STX XSAV	; move X to Y
 	JSR LB2VAL	; yes - get its value
 	CPX #FAIL
 	BEQ XDONE
@@ -1606,10 +1607,10 @@ XCONT	INX		; skip the '$'
 	BCS XCONT	; Continue until end of label or digits
 	;STX TEMP4	; Store end index
 	CMP #PLUS
-	BEQ .DOOP
+	BEQ _DOOP
 	CMP #MINUS
 	BNE XCHKOP
-.DOOP	JSR DOPLMN
+_DOOP	JSR DOPLMN
 	CPX #FAIL
 	BNE XCONT
 XERR	LDY #SYNTAX	; argument syntax error
@@ -1617,58 +1618,58 @@ XDONE	RTS
 XCHKOP	LDY #$00
 	LDA FRFLAG
 	CMP #LOBYTE
-	BEQ .GETLO
+	BEQ _GETLO
 	CMP #HIBYTE
-	BNE .STORE
+	BNE _STORE
 	LDA LVALH	; move LVALH to LVALL
 	STA LVALL
-.GETLO	STY LVALH	; keep LVALL, and zero LVALH
-.STORE	LDA ARGS,X	; copy rest of args to COMM
+_GETLO	STY LVALH	; keep LVALL, and zero LVALH
+_STORE	LDA ARGS,X	; copy rest of args to COMM
 	STA COMM,Y
-	BEQ .DOVAL	
+	BEQ _DOVAL	
 	CMP #SP
-	BEQ .DOVAL
+	BEQ _DOVAL
 	INX
 	INY
 	CPX #ARGSZ
-	BNE .STORE
-.DOVAL	LDA #$00
+	BNE _STORE
+_DOVAL	LDA #$00
 	STA COMM,Y
 	LDY TEMP3	; get start index 
 	LDA #HEX	; put the '$" back in so subsequent code 
 	STA ARGS,Y	; manages the value properly
 	INY
 	LDA LVALH
-	BEQ .DOLO
+	BEQ _DOLO
 	JSR HX2ASC
-.DOLO	LDA LVALL
+_DOLO	LDA LVALL
 	JSR HX2ASC
 	LDX #$00	; bring back the rest from IOBUF
-.COPY	LDA COMM,X
+_COPY	LDA COMM,X
 	STA ARGS,Y	; store at offset Y from ARGS
 	BEQ XDONE
 	INX
 	INY
-	BNE .COPY	
+	BNE _COPY	
 		
 ; ****************************************
 
 LB2VAL			; label to be evaluated is in ARGS + X (X = 0 or 1)
 	LDY #$00
-.NEXT	CPY #LBLSZ	; all chars done
+_NEXT	CPY #LBLSZ	; all chars done
 	BEQ DOLVAL
 	JSR CHKLBL	; has the label finished early?
-	BCC .STOP
+	BCC _STOP
 	STA COMM,Y	; copy because we need exactly 6 chars for the search
 	INX		; COMM isn't used in parsing, so it
 	LDA ARGS,X	; can be treated as scratch space
 	INY		
-	BNE .NEXT
-.STOP	LDA #SP		; label is in COMM - ensure filled with spaces
-.LOOP	STA COMM,Y	; Y still points to next byte to process 
+	BNE _NEXT
+_STOP	LDA #SP		; label is in COMM - ensure filled with spaces
+_LOOP	STA COMM,Y	; Y still points to next byte to process 
 	INY
 	CPY #LBLSZ
-	BNE .LOOP
+	BNE _LOOP
 DOLVAL	LDA #<COMM	; now get value for the label
 	STA STRL
 	LDX #$00	; select global table (#>COMM)
@@ -1679,35 +1680,35 @@ DOLVAL	LDA #<COMM	; now get value for the label
 	STA RECSZ	; size includes additional two bytes for value
 	LDA COMM
 	CMP #DOT
-	BEQ .LOCAL	; local symbol
+	BEQ _LOCAL	; local symbol
 	JSR SYMSCH
-	BEQ .FREF	; if not there, handle as a forward reference
-.FOUND	LDY #SYMSZ
+	BEQ _FREF	; if not there, handle as a forward reference
+_FOUND	LDY #SYMSZ
 	LDA (TBLL),Y	; save value
 	STA LVALL
 	INY
 	LDA (TBLL),Y
 	STA LVALH
 	RTS	
-.LOCAL			; locals much the same
+_LOCAL			; locals much the same
 	LDX #$03	; select local table
 	JSR SYMSCH
-	BNE .FOUND	; if not there, handle as a forward reference
-.FREF	LDA FRFLAG	; set when patching
+	BNE _FOUND	; if not there, handle as a forward reference
+_FREF	LDA FRFLAG	; set when patching
 	BNE SYMERR	; can't add FREFs when patching
 	JSR PCTOLV	; default value	to PC
 	LDA FREFTH	; store it in the table
 	STA MISCH
 	LDA FREFTL	; Calculate storage address
 	LDX NFREF
-	BEQ .CONT	; no symbols to skip
-.LOOP	CLC		
+	BEQ _CONT	; no symbols to skip
+_LOOP	CLC		
 	ADC #SYMSZ+3	; skip over existing symbols
-	BCC .SKIP
+	BCC _SKIP
 	INC MISCH	; carry bit set - increase high pointer
-.SKIP	DEX
-	BNE .LOOP
-.CONT	STA MISCL	; Reqd address is now in MISCL,H
+_SKIP	DEX
+	BNE _LOOP
+_CONT	STA MISCL	; Reqd address is now in MISCL,H
 	INC NFREF	; Update FREF count
 	LDA NFREF
 	CMP #MAXFRF	; Check for table full
@@ -1739,11 +1740,11 @@ STRSYM			; Store symbol - name at LABEL, value in MISC2L,H
 	STA RECSIG	
 	LDA LABEL	; Global or local?
 	CMP #DOT
-	BNE .SRCH	; Starts with a dot, so local
+	BNE _SRCH	; Starts with a dot, so local
 	LDX #$03
-.SRCH	JSR SYMSCH
+_SRCH	JSR SYMSCH
 	BEQ STCONT	; Not there yet, so ok
-.ERR	PLA
+_ERR	PLA
 	PLA
 SYMERR	LDY #UNKSYM	; missing symbol error
 	BNE SBAD
@@ -1755,31 +1756,31 @@ SBAD	LDX #FAIL
 STCONT	;LDA #LABEL
 	LDX LABEL	; Global or local?
 	CPX #DOT
-	BEQ .LSYM	; Starts with a dot, so local
+	BEQ _LSYM	; Starts with a dot, so local
 	SEC		; Store symbol in global symbol table	
 	LDA GSYMTL	; Make space for next symbol
 	SBC #SYMSZ+2	; skip over existing symbols
-	BCS .CONTG	; Reqd address is now in GSYMTL,H
-.DWNHI	DEC GSYMTH	; carry bit clear - decrease high pointer
-.CONTG	STA GSYMTL
+	BCS _CONTG	; Reqd address is now in GSYMTL,H
+_DWNHI	DEC GSYMTH	; carry bit clear - decrease high pointer
+_CONTG	STA GSYMTL
 	INC NGSYM	; Update Symbol count - overflow on 256 symbols
 	BEQ OVFERR	; Check for table full
 	STA MISCL	; put addres into MISCH,L for saving
 	LDA GSYMTH
 	STA MISCH
 	BNE STORE	; Always branches - symbol tables cannot be on page zero
-.LSYM	LDA LSYMTH	; Store symbol in local symbol table	
+_LSYM	LDA LSYMTH	; Store symbol in local symbol table	
 	STA MISCH
 	LDA LSYMTL	; Calculate storage address
 	LDX NLSYM
-	BEQ .CONTL	; no symbols to skip
-.LOOP	CLC
+	BEQ _CONTL	; no symbols to skip
+_LOOP	CLC
 	ADC #SYMSZ+2	; skip over existing symbols
-	BCC .SKIP
+	BCC _SKIP
 	INC MISCH
-.SKIP	DEX
-	BNE .LOOP
-.CONTL	STA MISCL	; Reqd address is now in MISCL,H
+_SKIP	DEX
+	BNE _LOOP
+_CONTL	STA MISCL	; Reqd address is now in MISCL,H
 	INC NLSYM	; Update Symbol count
 	LDA NLSYM
 	CMP #MAXSYM	; Check for table full
@@ -1787,15 +1788,15 @@ STCONT	;LDA #LABEL
 STORE	LDY #0		; First store the symbol string
 	STY MISC2H
    	LDX #SYMSZ
-.MV     LDA (MISC2L),Y 	; move bytes
-        STA (MISCL),Y
-        INY
-        DEX
-        BNE .MV
-        LDA LVALL	; Now store the value WORD
+_MV     LDA (MISC2L),Y 	; move bytes
 	STA (MISCL),Y
 	INY
-        LDA LVALH
+	DEX
+	BNE _MV
+	LDA LVALL	; Now store the value WORD
+	STA (MISCL),Y
+	INY
+	LDA LVALH
 	STA (MISCL),Y
 	RTS		; No error	
 	
@@ -1815,20 +1816,20 @@ CONVRT	 		; convert an ASCII string at ARGS,X
 	STA COMM
 	LDY #$00
 	STY LVALH
-.BACK	DEX
+_BACK	DEX
 	DEX
 	LDA ARGS,X
 	CMP #HEX
-	BEQ .1DIG
+	BEQ _1DIG
 	JSR BYT2HX
 	SEC
-	BCS .SKIP
-.1DIG	JSR AHARGS1	; one digit
-.SKIP	STA LVALL,Y
+	BCS _SKIP
+_1DIG	JSR AHARGS1	; one digit
+_SKIP	STA LVALL,Y
 	INY
 	CPY COMM
-	BNE .BACK
-.RET	LDY COMM+1
+	BNE _BACK
+_RET	LDY COMM+1
 	RTS
 		
 ; ****************************************
@@ -1879,87 +1880,87 @@ FMT2AM			; calculate the addressing given
 	LDA #$04	; start with mode index of 4
 	LDY ARGS,X
 	CPY #OPEN
-	BNE .SKIP
+	BNE _SKIP
 	CLC		; add 3 for indirect modes
 	ADC #$03
 	INX
-.SKIP	PHA	
+_SKIP	PHA	
 	JSR NBYTS	; count bytes (1 or 2 only)
 	TAY		; byte count in Y 
 	DEX
 	LDA CURMNE
 	CMP #$21	; is it JSR?
-	BEQ .JSR
+	BEQ _JSR
 	CMP #$23	; is it JMP?
-	BNE .NOJMP
-.JSR	;LDY #$2		; force 2 bytes for these two situations
+	BNE _NOJMP
+_JSR	;LDY #$2		; force 2 bytes for these two situations
 	INY		; following code treats Y = 3 the same as Y = 2
-.NOJMP	PLA		; mode base back in A
+_NOJMP	PLA		; mode base back in A
 	INX		; check for NBYTS failure
 	BEQ FERR
 	DEY
-	BEQ .1BYT
-.2BYT	CLC
+	BEQ _1BYT
+_2BYT	CLC
 	ADC #$06	; add 6 to base index for 2 byte modes
-.1BYT	TAY		; mode index now in Y
-.CHECK	LDA ARGS,X
-	BEQ .DONE
+_1BYT	TAY		; mode index now in Y
+_CHECK	LDA ARGS,X
+	BEQ _DONE
 	CMP #SP
-	BNE .CONT
-.DONE	LDA ARGS
+	BNE _CONT
+_DONE	LDA ARGS
 	CMP #OPEN	; brackets must match
 	BEQ FERR
-.RET	CPY #$0F
+_RET	CPY #$0F
 	BPL FERR	; no indirect absolute Y mode
 	CPY #$07
 	BEQ FERR	; no indirect zero page mode
-	BMI .1		; 6502 has no INZ mode, so reduce
+	BMI _1		; 6502 has no INZ mode, so reduce
 	DEY		; so reduce by ifgreater than 7
-.1	TYA
+_1	TYA
 	TAX
 	RTS
-.CONT	CMP #CLOSE
-	BNE .MORE
+_CONT	CMP #CLOSE
+	BNE _MORE
 	LDA #SP
 	STA ARGS	; erase brackets now they have
 	INX
 	LDA ARGS,X
 	CMP #COMMA
-	BNE .CHECK
-.MORE	LDA ARGS,X
+	BNE _CHECK
+_MORE	LDA ARGS,X
 	CMP #COMMA
 	BNE FERR
 	INX
 	LDA ARGS,X
 	CMP #'X'
-	BEQ .ISX
-.ISY	CMP #'Y'
+	BEQ _ISX
+_ISY	CMP #'Y'
 	BNE FERR
 	LDA ARGS
 	CMP #OPEN
 	BEQ FERR
 	STA ARGS-2,X	; to avoid ,X check below
 	INY
-.ISX	INY
+_ISX	INY
 	LDA ARGS-2,X
 	CMP #CLOSE
 	BEQ FERR
 	INX
-	BNE .CHECK	; always
+	BNE _CHECK	; always
 FERR	LDX #FAIL	; error message generated upstream
 FRET	RTS
 NBYTS	LDY #$00	; count bytes using Y
-.LOOP	INX
+_LOOP	INX
 	INY
 	JSR AHARGS
 	CMP #FAIL
-	BNE .LOOP
-.NEXT	TYA
+	BNE _LOOP
+_NEXT	TYA
 	LSR		; divide number by 2
 	BEQ FERR	; zero is an error
 	CMP #$03	; 3 or more is an error
 	BCS FERR
-.RET	RTS		
+_RET	RTS		
 	
 ; ****************************************
 ; *          Utility Routines            *
@@ -1973,13 +1974,13 @@ SEARCH			; TBLL,H has the address of the table to search
 	LDA RECNM
 	BEQ FERR	; empty table
 	LDX #$00	; Record number
-.CHK1	LDY #$FF	; Index into entry
-.CHMTCH	INY
+_CHK1	LDY #$FF	; Index into entry
+_CHMTCH	INY
 	CPY RECSIG	; Have we checked all significant chars?
 	BEQ FRET	; Yes
 	LDA (TBLL),Y	; Load the bytes to compare
 	CMP (STRL),Y
-	BEQ .CHMTCH	; Check next if these match
+	BEQ _CHMTCH	; Check next if these match
 	INX		; Else move to next record
 	CPX RECNM
 	BEQ FERR
@@ -1987,11 +1988,11 @@ SEARCH			; TBLL,H has the address of the table to search
 	CLC
 	ADC RECSZ
 	STA TBLL
-	BCC .CHK1
+	BCC _CHK1
 	INC TBLH	; Including high byte if necessary
-	BCS .CHK1	; will always branch
-;.FAIL	LDX #FAIL	; X = $FF indicates failure
-;.MATCH	RTS		; got it - index is in X, address is in A and TBLL,H
+	BCS _CHK1	; will always branch
+;_FAIL	LDX #FAIL	; X = $FF indicates failure
+;_MATCH	RTS		; got it - index is in X, address is in A and TBLL,H
 
 ; ****************************************
 
@@ -2006,10 +2007,10 @@ BYT2HX			; convert the ASCII byte (1 or 2 chars) at offset X in
 	JSR AHARGS1
 	DEX
 	CMP #FAIL
-	BNE .CONT
+	BNE _CONT
 	PLA		; just ignore 2nd character
 	RTS
-.CONT	STA SCRTCH
+_CONT	STA SCRTCH
 	PLA
 	ASL		; shift 
 	ASL
@@ -2025,13 +2026,13 @@ AHARGS	LDA ARGS,X
 ASC2HX			; convert ASCII code in A to a HEX digit
     	EOR #$30  
 	CMP #$0A  
-	BCC .VALID  
+	BCC _VALID  
 	ADC #$88        ; $89 - CLC  
 	CMP #$FA  
-	BCC .ERR  
+	BCC _ERR  
 	AND #$0F   
-.VALID	RTS
-.ERR	LDA #FAIL	; this value can never be from a single digit, 
+_VALID	RTS
+_ERR	LDA #FAIL	; this value can never be from a single digit, 
 	RTS		; so ok to indicate error
 	
 ; ****************************************
@@ -2045,9 +2046,9 @@ HX2ASC			; convert a byte in A into two ASCII characters
 DO1DIG	AND #$0F	; Print 1 hex digit
 	ORA #$30
 	CMP #$3A
-	BCC .DONE
+	BCC _DONE
 	ADC #$06
-.DONE	STA ARGS,Y
+_DONE	STA ARGS,Y
 	INY
 	RTS
 	
@@ -2061,21 +2062,21 @@ EXPMNE			; copy the 2 chars at R/LMNETB,X
 	LDA RMNETB,X
 	STA RMNE
 	LDX #$00
-.NEXT	LDA #$00
+_NEXT	LDA #$00
 	LDY #$05
-.LOOP	ASL RMNE
+_LOOP	ASL RMNE
 	ROL LMNE
 	ROL
 	DEY
-	BNE .LOOP
+	BNE _LOOP
 	ADC #'A'-1
 	STA MNE,X
 	LDY PRFLAG
-	BEQ .SKIP
+	BEQ _SKIP
 	JSR OUTCH	; print the mnemonic as well
-.SKIP	INX
+_SKIP	INX
 	CPX #$03
-	BNE .NEXT
+	BNE _NEXT
 	RTS	
 
 ; ****************************************
@@ -2086,10 +2087,10 @@ EXPMNE			; copy the 2 chars at R/LMNETB,X
 	
 DISASM	
 	JSR ADDARG
-	;BEQ .DODIS
+	;BEQ _DODIS
 	BEQ DSMBL
-.COPY	JSR LVTOPC
-;.DODIS	JMP DSMBL
+_COPY	JSR LVTOPC
+;_DODIS	JMP DSMBL
 ; fall through
 
 ; ****************************************
@@ -2097,47 +2098,46 @@ DISASM
 DSMBL	
 	;LDA #$13	; Count for 20 instruction dsmbly
 	;STA COUNT
-.DSMBL2	JSR INSTDSP	; Disassemble and display instr.
+_DSMBL2	JSR INSTDSP	; Disassemble and display instr.
 	JSR PCADJ
 	STA PCL		; Update PCL,H to next instr.
 	STY PCH
 	;DEC COUNT	; Done first 19 instrs
-	;BNE .DSMBL2	; * Yes, loop.  Else DSMBL 20th
+	;BNE _DSMBL2	; * Yes, loop.  Else DSMBL 20th
 	
 	LDA KBDRDY	; Now disassemble until key press
 	.if APPLE1
-	BPL .DSMBL2
+	BPL _DSMBL2
 	.else
-	BEQ .DSMBL2
+	BEQ _DSMBL2
 	.endif
 	LDA KBD
 
-	
 INSTDSP	JSR PRPC	; Print PCL,H
 	LDA (PCL,X)	; Get op code
 	TAY   
 	LSR   		; * Even/odd test
-	BCC .IEVEN
+	BCC _IEVEN
 	ROR  		; * Test B1
-	BCS .ERR	; XXXXXX11 instr invalid
+	BCS _ERR	; XXXXXX11 instr invalid
 	CMP #$A2	
-	BEQ .ERR	; 10001001 instr invalid
+	BEQ _ERR	; 10001001 instr invalid
 	AND #$87	; Mask 3 bits for address mode
 	;ORA #$80	; * add indexing offset
-.IEVEN	LSR   		; * LSB into carry for
+_IEVEN	LSR   		; * LSB into carry for
 	TAX   		; Left/right test below
 	LDA MODE,X	; Index into address mode table
-	BCC .RTMODE	; If carry set use LSD for
+	BCC _RTMODE	; If carry set use LSD for
 	JSR LSR4
 	;LSR   		; * print format index
 	;LSR   		
 	;LSR   		; If carry clear use MSD
 	;LSR   
-.RTMODE	AND #$0F	; Mask for 4-bit index
-	BNE .GETFMT	; $0 for invalid opcodes
-.ERR	LDY #$80	; Substitute $80 for invalid op,
+_RTMODE	AND #$0F	; Mask for 4-bit index
+	BNE _GETFMT	; $0 for invalid opcodes
+_ERR	LDY #$80	; Substitute $80 for invalid op,
 	LDA #$00	; set print format index to 0
-.GETFMT	TAX   
+_GETFMT	TAX   
 	LDA MODE2,X	; Index into print format table
 	STA FORMAT	; Save for address field format
 	AND #$03	; Mask 2-bit length.  0=1-byte
@@ -2146,44 +2146,44 @@ INSTDSP	JSR PRPC	; Print PCL,H
 	JSR GETMNE
 	LDY #$00
 	PHA   		; Save mnemonic table index
-.PROP	LDA (PCL),Y
+_PROP	LDA (PCL),Y
 	JSR OUTHEX
 	LDX #$01
-.PROPBL	JSR PRBL2
+_PROPBL	JSR PRBL2
 	CPY LENGTH	; Print instr (1 to 3 bytes)
 	INY   		; *  in a 12-character field
-	BCC .PROP
+	BCC _PROP
 	LDX #$03	; char count for mnemonic print
 	STX PRFLAG	; So EXPMNE prints the mnemonic
 	CPY #$04
-	BCC .PROPBL
+	BCC _PROPBL
 	PLA   		; Recover mnemonic index
 	TAX
 	JSR EXPMNE
 	JSR PRBLNK	; Output 3 blanks
 	LDY LENGTH
 	LDX #$06	; Count for 6 print format bits
-.PPADR1	CPX #$03
-	BEQ .PPADR5	; If X=3 then print address val
-.PPADR2	ASL FORMAT	; Test next print format bit
-	BCC .PPADR3	; If 0 don't print
+_PPADR1	CPX #$03
+	BEQ _PPADR5	; If X=3 then print address val
+_PPADR2	ASL FORMAT	; Test next print format bit
+	BCC _PPADR3	; If 0 don't print
 	LDA CHAR1-1,X	; *  corresponding chars
 	JSR OUTCH	; Output 1 or 2 chars
 	LDA CHAR2-1,X	; *  (If char from char2 is 0,
-	BEQ .PPADR3	; *   don't output it)
+	BEQ _PPADR3	; *   don't output it)
 	JSR OUTCH
-.PPADR3	DEX   
-	BNE .PPADR1
+_PPADR3	DEX   
+	BNE _PPADR1
 	STX PRFLAG	; reset flag to 0
 	RTS  		; Return if done 6 format bits
-.PPADR4	DEY
-	BMI .PPADR2
+_PPADR4	DEY
+	BMI _PPADR2
 	JSR OUTHEX	; Output 1- or 2-byte address
-.PPADR5	LDA FORMAT
+_PPADR5	LDA FORMAT
 	CMP #$E8	; Handle rel addressing mode
 	LDA (PCL),Y	; Special print target adr
-	BCC .PPADR4	; *  (not displacement)
-.RELADR	JSR PCADJ3	; PCL,H + DISPL + 1 to A,Y
+	BCC _PPADR4	; *  (not displacement)
+_RELADR	JSR PCADJ3	; PCL,H + DISPL + 1 to A,Y
 	TAX   
 	INX   
 	BNE PRNTYX	; *     +1 to X,Y
@@ -2205,12 +2205,12 @@ PCADJ	SEC
 PCADJ2	LDA LENGTH	; 0=1-byte, 1=2-byte, 2=3-byte
 PCADJ3	LDY PCH	
 	TAX   		; * test displ sign (for rel
-	BPL .PCADJ4	; *  branch).  Extend neg
+	BPL _PCADJ4	; *  branch).  Extend neg
 	DEY   		; *  by decrementing PCH
-.PCADJ4	ADC PCL
-	BCC .RTS		; PCL+LENGTH (or displ) + 1 to A
+_PCADJ4	ADC PCL
+	BCC _RTS	; PCL+LENGTH (or displ) + 1 to A
 	INY   		; *  carry into Y (PCH)
-.RTS	RTS 
+_RTS	RTS 
 	
 GETMNE			; get mnemonic index for opcode in A
 			; on completion, A holds the index 
@@ -2242,9 +2242,9 @@ CAT5			; remaining nnnX XX00 codes
 	PLA
 	AND #$07	; just low 3 bits
 	CMP #$03
-	BPL .3
+	BPL _3
 	ADC #$02	; correction for 21 and 22
-.3	ADC #$1F	; and add 20
+_3	ADC #$1F	; and add 20
 	RTS
 CAT4			; Branch instructions - nnn1 0000
 	PLA
@@ -2267,9 +2267,9 @@ LSR4	LSR		; need high 4 bits
 CAT3			; 1nnn 1010 - TXA,TXS,TAX,TSX,DEX,-,NOP,-
 	JSR CAT2	; need high 4 bits
 	CMP #$0E
-	BNE .2
+	BNE _2
 	ADC #$FD
-.2	ADC #$08	; then add 8
+_2	ADC #$08	; then add 8
 	RTS
 CAT67			; gets the index for categories 6 and 7
 	PLA		; i.e. nnnX XX01 and nnnX XX10 ($28-$2F, $30-$37)
@@ -2297,7 +2297,6 @@ NUMMN 	=$38		; number of mnemonics
 ; Tables
 
 LMNETB
-
 	.byte $82	; PHP
 	.byte $1B	; CLC
 	.byte $83	; PLP
@@ -2442,7 +2441,8 @@ OFFSET			; Default offset values for each mode,
 	.byte $00, $08, $00, $00, $04
 	.byte $14, $14, $00, $10, $0C, $1C
 	.byte $18, $2C
-	
+
+
 ; offset adjustments for the mnemonic exceptions
 ADJABY  =$04		; 
 ADJIMM  =$08		; 
@@ -2507,7 +2507,7 @@ SPINC3	.byte $04, $05, $0A, $0B, $0A, $0A
 ; commands
 
 NUMCMD	=$0D
-CMDS	.ASCII "NLXEMRDI!$AVP"
+CMDS	.text "NLXEMRDI!$AVP"
 
 N1 = NEW-1
 L1 = LIST-1
@@ -2560,7 +2560,7 @@ EQU	='='		; equate
 MOD	='M'		; start address for subsequent module
 
 NUMDIR	=$05
-DIRS	.ascii "BWS=M"
+DIRS	.text "BWS=M"
 
 ; Errors
 
@@ -2574,19 +2574,20 @@ MAXERR	=$06
 
 EMSGSZ	=$03		; The size of the error message strings
 ERPRSZ	=$05		; The size of the error prefix string
-ERRPRE	.ascii " :RRE"
+ERRPRE	.text " :RRE"
 ERRMSG
 	.if UNK_ERR_CHECK
-	.ascii "UNK"
+	.text "UNK"
 	.endif
-	.ascii "MNE"
-	.ascii "ADD"
-	.ascii "SYN"
-	.ascii "OVF"
-	.ascii "SYM"
-	
+	.text "MNE"
+	.text "ADD"
+	.text "SYN"
+	.text "OVF"
+	.text "SYM"
+
 MSGSZ = $1B
-MSG	.ascii "NESSEW NEK YB 3.1 REDASURK",CR
+MSG	.text "NESSEW NEK YB 3.1 REDASURK",CR
+
 
 	.if MINIMONITOR
 ; ****************************************
@@ -2596,174 +2597,174 @@ MSG	.ascii "NESSEW NEK YB 3.1 REDASURK",CR
 ; ****************************************
 	
 NREGS	=$5
-DBGCMD	.ascii "PSYXALH"
+DBGCMD	.text "PSYXALH"
 NDBGCS	=NREGS+2
-FLAGS	.ascii "CZIDB"
+FLAGS	.text "CZIDB"
 	.byte $00	; A non-printing character - this flag always on
-	.ascii "VN"
+	.text "VN"
 
 GETCMD	JSR CRLF
 	JSR PRDASH
 	JSR GETCH1
 	LDY #NDBGCS
-.LOOP	CMP DBGCMD-1,Y
+_LOOP	CMP DBGCMD-1,Y
 	BEQ DOCMD	; if we've found a PC or register change command, then run it
 	DEY
-	BNE .LOOP
+	BNE _LOOP
 	CMP #'R'	; resume?
-	BNE .NOTR
+	BNE _NOTR
 	JSR RESTORE
 	;CLI		; enable interrupts again
 	JMP (PCL)	; Simulate the return so we can more easily manipulate the stack
-.NOTR
+_NOTR
 	.if DOTRACE
 	CMP #'T'	; trace?
 	BNE NOTT	
 TRACE	LDX #$08
 XQINIT  LDA INITBL-1,X ;INIT XEQ AREA
-        STA XQT,X
-        DEX
-        BNE XQINIT
-        LDA (PCL,X)    ;USER OPCODE BYTE
-        BEQ XBRK       ;SPECIAL IF BREAK
-        LDY LENGTH     ;LEN FROM DISASSEMBLY
-        CMP #$20
-        BEQ XJSR       ;HANDLE JSR, RTS, JMP,
-        CMP #$60       ;  JMP (), RTI SPECIAL
-        BEQ XRTS
-        CMP #$4C
-        BEQ XJMP
-        CMP #$6C
-        BEQ XJMPAT
-        CMP #$40
-        BEQ XRTI
-        AND #$1F
-        EOR #$14
-        CMP #$04       ;COPY USER INST TO XEQ AREA
-        BEQ .XQ2       ;  WITH TRAILING NOPS
-.XQ1    LDA (PCL),Y    ;CHANGE REL BRANCH
-.XQ2    STA XQT,Y      ;  DISP TO 4 FOR
-        DEY            ;  JMP TO BRANCH OR
-        BPL .XQ1       ;  NBRANCH FROM XEQ.
-        JSR RESTORE    ;RESTORE USER REG CONTENTS.
-        JMP XQT        ;XEQ USER OP FROM RAM
+	STA XQT,X
+	DEX
+	BNE XQINIT
+	LDA (PCL,X)    ;USER OPCODE BYTE
+	BEQ XBRK       ;SPECIAL IF BREAK
+	LDY LENGTH     ;LEN FROM DISASSEMBLY
+	CMP #$20
+	BEQ XJSR       ;HANDLE JSR, RTS, JMP,
+	CMP #$60       ;  JMP (), RTI SPECIAL
+	BEQ XRTS
+	CMP #$4C
+	BEQ XJMP
+	CMP #$6C
+	BEQ XJMPAT
+	CMP #$40
+	BEQ XRTI
+	AND #$1F
+	EOR #$14
+	CMP #$04       ;COPY USER INST TO XEQ AREA
+	BEQ _XQ2       ;  WITH TRAILING NOPS
+_XQ1    LDA (PCL),Y    ;CHANGE REL BRANCH
+_XQ2    STA XQT,Y      ;  DISP TO 4 FOR
+	DEY            ;  JMP TO BRANCH OR
+	BPL _XQ1       ;  NBRANCH FROM XEQ.
+	JSR RESTORE    ;RESTORE USER REG CONTENTS.
+	JMP XQT        ;XEQ USER OP FROM RAM
 NOTT
-        .ENDIF
-        CMP #'!'	; MONITOR COMMAND
-        BNE .MON
-        JSR GETLINE
-        JMP XBRK
-.MON	CMP #'$'	; monitor?
+	.endif
+	CMP #'!'	; MONITOR COMMAND
+	BNE _MON
+	JSR GETLINE
+	JMP XBRK
+_MON	CMP #'$'	; monitor?
 	BNE GETCMD
 	JMP MONTOR
 DOCMD	LDX #$FE
-.LOOP	JSR GETCH1
+_LOOP	JSR GETCH1
 	STA ARGS+2,X
 	INX
-	BNE .LOOP
+	BNE _LOOP
 	JSR BYT2HX
 	STA REGS-1,Y
 	LDX SAVS
 	TXS
-.1	JMP XBRK
-	
+_1	JMP XBRK
+
 DEBUG   PLP
-        JSR SAVE       ;SAVE REG'S ON BREAK
-        PLA              ;  INCLUDING PC
-        STA PCL
-        PLA
-        STA PCH
+	JSR SAVE       ;SAVE REG'S ON BREAK
+	PLA              ;  INCLUDING PC
+	STA PCL
+	PLA
+	STA PCH
 XBRK	TSX
-        STX SAVS
+	STX SAVS
 	JSR SHOW
 	JSR INSTDSP    ;PRINT USER PC.
 	JMP GETCMD
 	.if DOTRACE
 XRTI    CLC
-        PLA              ;SIMULATE RTI BY EXPECTING
-        STA SAVP     ;  STATUS FROM STACK, THEN RTS
+	PLA              ;SIMULATE RTI BY EXPECTING
+	STA SAVP     ;  STATUS FROM STACK, THEN RTS
 XRTS    PLA              ;RTS SIMULATION
-        STA PCL        ;  EXTRACT PC FROM STACK
-        PLA              ;  AND UPDATE PC BY 1 (LEN=0)
+	STA PCL        ;  EXTRACT PC FROM STACK
+	PLA              ;  AND UPDATE PC BY 1 (LEN=0)
 PCINC2  STA PCH
 PCINC3  JSR PCADJ2	;UPDATE PC BY LEN
-        STY PCH
-        CLC
-        BCC NEWPCL
+	STY PCH
+	CLC
+	BCC NEWPCL
 XJSR    CLC
-        JSR PCADJ2     ;UPDATE PC AND PUSH
-        TAX              ;  ONTO STACK FOR
-        TYA              ;  JSR SIMULATE
-        PHA
-        TXA
-        PHA
-        LDY #$02
+	JSR PCADJ2     ;UPDATE PC AND PUSH
+	TAX              ;  ONTO STACK FOR
+	TYA              ;  JSR SIMULATE
+	PHA
+	TXA
+	PHA
+	LDY #$02
 XJMP    CLC
 XJMPAT  LDA (PCL),Y
-        TAX              ;LOAD PC FOR JMP,
-        DEY              ;  (JMP) SIMULATE.
-        LDA (PCL),Y
-        STX PCH
+	TAX              ;LOAD PC FOR JMP,
+	DEY              ;  (JMP) SIMULATE.
+	LDA (PCL),Y
+	STX PCH
 NEWPCL  STA PCL
-        BCS XJMP
+	BCS XJMP
 	JMP XBRK
-        .endif
-SHOW  	JSR CRLF
+	.endif
+SHOW	JSR CRLF
 	LDX #NREGS
-.LOOP	LDA DBGCMD-1,X
+_LOOP	LDA DBGCMD-1,X
 	JSR OUTCH
 	JSR PRDASH
 	LDA REGS-1,X
 	JSR OUTHEX
 	JSR OUTSP
 	DEX
-	BNE .LOOP
+	BNE _LOOP
 	LDA SAVP	; show the flags explicitly as well
 	LDX #$08
-.NEXT	ASL
-	BCC .SKIP
+_NEXT	ASL
+	BCC _SKIP
 	PHA
 	LDA FLAGS-1,X
 	JSR OUTCH
 	PLA
-.SKIP	DEX
-	BNE .NEXT
+_SKIP	DEX
+	BNE _NEXT
 	RTS
 	.if DOTRACE
 BRANCH  CLC              ;BRANCH TAKEN,
-        LDY #$01       ;  ADD LEN+2 TO PC
-        LDA (PCL),Y
-        JSR PCADJ3
-        STA PCL
-        TYA
+	LDY #$01       ;  ADD LEN+2 TO PC
+	LDA (PCL),Y
+	JSR PCADJ3
+	STA PCL
+	TYA
 	SEC
-        BCS PCINC2
+	BCS PCINC2
 NBRNCH  JSR SAVE       ;NORMAL RETURN AFTER
-        SEC              ;  XEQ USER OF
-        BCS PCINC3     ;GO UPDATE PC
+	SEC              ;  XEQ USER OF
+	BCS PCINC3     ;GO UPDATE PC
 INITBL  NOP
-        NOP              ;DUMMY FILL FOR
-        JMP NBRNCH     ;  XEQ AREA
-        JMP BRANCH
-        .endif
+	NOP              ;DUMMY FILL FOR
+	JMP NBRNCH     ;  XEQ AREA
+	JMP BRANCH
+	.endif
 RESTORE LDA SAVP     ;RESTORE 6502 REG CONTENTS
-        PHA              ;  USED BY DEBUG SOFTWARE
-        LDA SAVA
+	PHA              ;  USED BY DEBUG SOFTWARE
+	LDA SAVA
 	LDX SAVX
-        LDY SAVY
-        PLP
-        RTS
+	LDY SAVY
+	PLP
+	RTS
 SAVE    STA SAVA        ;SAVE 6502 REG CONTENTS
 	STX SAVX
-        STY SAVY
-        PHP
-        PLA
-        STA SAVP
-        TSX
-        STX SAVS
-        CLD
-        RTS
-        .endif
+	STY SAVY
+	PHP
+	PLA
+	STA SAVP
+	TSX
+	STX SAVS
+	CLD
+	RTS
+	.endif
 
 ; ****************************************
 ; I/O routines
@@ -2779,17 +2780,17 @@ PRDASH
 GETCH1	JSR GETCH
 	JMP OUTCH
 	.endif
-	
+
 ; ****************************************
 
 SHWMOD			; Show name of module being assembled
 	JSR CRLF
 	LDX #$00
-.LOOP2	LDA LABEL,X
+_LOOP2	LDA LABEL,X
 	JSR OUTCH
 	INX
 	CPX #LBLSZ
-	BNE .LOOP2
+	BNE _LOOP2
 	JSR OUTSP
 ;	JMP PRLNNM	; falls through
 	
@@ -2859,130 +2860,129 @@ DSPCR           =     $D013           ;  PIA.B display control register
 
 MONPROMPT          =     '\'             ;  Prompt character
 
-                .ORG     $FF00
-                
+	        * =     $FF00
 RESET           CLD                   ;  Clear decimal arithmetic mode
-                CLI
-                LDY     #$7F	      ;  Mask for DSP data direction reg
-                STY     DSP           ;   (DDR mode is assumed after reset)
-                LDA     #$A7          ;  KBD and DSP control register mask
-                STA     KBDRDY        ;  Enable interrupts, set CA1, CB1 for
-                STA     DSPCR         ;   positive edge sense/output mode.
+	        CLI
+	        LDY     #$7F	      ;  Mask for DSP data direction reg
+	        STY     DSP           ;   (DDR mode is assumed after reset)
+	        LDA     #$A7          ;  KBD and DSP control register mask
+	        STA     KBDRDY        ;  Enable interrupts, set CA1, CB1 for
+	        STA     DSPCR         ;   positive edge sense/output mode.
 
 
 ESCAPE          LDA     #MONPROMPT       ;  Print prompt character
-                JSR     OUTCH         ;  Output it.
+	        JSR     OUTCH         ;  Output it.
 GET             ;JSR 	CRLF 
 		JSR 	GETLINE
-                BCC 	ESCAPE
-                BCS 	GET
+	        BCC 	ESCAPE
+	        BCS 	GET
 GETLINE         JSR 	CRLF
-                LDY     #0+1          ;  Start a new input line
+	        LDY     #0+1          ;  Start a new input line
 BACKSPACE       DEY                   ;  Backup text index
-                BMI     GETLINE       ;  Oops, line's empty, reinitialize
+	        BMI     GETLINE       ;  Oops, line's empty, reinitialize
 NEXTCHAR        JSR 	GETCH1
 		STA     IN,Y          ;  Add to text buffer
-                CMP     #CR
-                BEQ 	.CONT
+	        CMP     #CR
+	        BEQ 	_CONT
 		CMP     #BSA1         ;  Backspace key?
-                BEQ     BACKSPACE     ;  Yes
-                CMP     #ESC          ;  ESC?
-                BEQ     ESCAPE        ;  Yes
-                INY                   ;  Advance text index
-                BPL     NEXTCHAR      ;  Auto ESC if line longer than 127
-.CONT				      ;  Line received, now let's parse it
-                LDY     #-1           ;  Reset text index
-                LDA     #0            ;  Default mode is XAM
-                TAX                   ;  X=0
+	        BEQ     BACKSPACE     ;  Yes
+	        CMP     #ESC          ;  ESC?
+	        BEQ     ESCAPE        ;  Yes
+	        INY                   ;  Advance text index
+	        BPL     NEXTCHAR      ;  Auto ESC if line longer than 127
+_CONT				      ;  Line received, now let's parse it
+	        LDY     #-1           ;  Reset text index
+	        LDA     #0            ;  Default mode is XAM
+	        TAX                   ;  X=0
 SETSTOR         ASL                   ;  Leaves $7B if setting STOR mode
 SETMODE         STA     MODEM         ;  Set mode flags
 BLSKIP          INY                   ;  Advance text index
 NEXTITEM        LDA     IN,Y          ;  Get character
-                CMP     #CR
-                BNE 	.CONT
+	        CMP     #CR
+	        BNE 	_CONT
      		SEC
      		RTS           
-.CONT           ORA 	#$80
-                CMP     #'.'+$80
-                BCC     BLSKIP        ;  Ignore everything below "."!
-                BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
-                CMP     #':'+$80
-                BEQ     SETSTOR       ;  Set STOR mode! $BA will become $7B
-                CMP     #'R'+$80
-                BEQ     RUNM          ;  Run the program! Forget the rest
-                STX     L             ;  Clear input value (X=0)
-                STX     H
-                STY     YSAVM          ;  Save Y for comparison
+_CONT           ORA 	#$80
+	        CMP     #'.'+$80
+	        BCC     BLSKIP        ;  Ignore everything below "."!
+	        BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
+	        CMP     #':'+$80
+	        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $7B
+	        CMP     #'R'+$80
+	        BEQ     RUNM          ;  Run the program! Forget the rest
+	        STX     L             ;  Clear input value (X=0)
+	        STX     H
+	        STY     YSAVM          ;  Save Y for comparison
 NEXTHEX         LDA     IN,Y          ;  Get character for hex test
-                EOR     #$30          ;  Map digits to 0-9
-                CMP     #$0A          ;  Is it a decimal digit?
-                BCC     DIG           ;  Yes!
-                ADC     #$88          ;  Map letter "A"-"F" to $FA-FF
-                CMP     #$FA          ;  Hex letter?
-                BCC     NOTHEX        ;  No! Character not hex
+	        EOR     #$30          ;  Map digits to 0-9
+	        CMP     #$0A          ;  Is it a decimal digit?
+	        BCC     DIG           ;  Yes!
+	        ADC     #$88          ;  Map letter "A"-"F" to $FA-FF
+	        CMP     #$FA          ;  Hex letter?
+	        BCC     NOTHEX        ;  No! Character not hex
 DIG             ASL
-                ASL                   ;  Hex digit to MSD of A
-                ASL
-                ASL
-                LDX     #4            ;  Shift count
+	        ASL                   ;  Hex digit to MSD of A
+	        ASL
+	        ASL
+	        LDX     #4            ;  Shift count
 HEXSHIFT        ASL                   ;  Hex digit left, MSB to carry
-                ROL     L             ;  Rotate into LSD
-                ROL     H             ;  Rotate into MSD's
-                DEX                   ;  Done 4 shifts?
-                BNE     HEXSHIFT      ;  No, loop
-                INY                   ;  Advance text index
-                BNE     NEXTHEX       ;  Always taken
+	        ROL     L             ;  Rotate into LSD
+	        ROL     H             ;  Rotate into MSD's
+	        DEX                   ;  Done 4 shifts?
+	        BNE     HEXSHIFT      ;  No, loop
+	        INY                   ;  Advance text index
+	        BNE     NEXTHEX       ;  Always taken
 NOTHEX          CPY     YSAVM         ;  Was at least 1 hex digit given?
-                BNE 	.CONT
-                CLC		      ;  No! Ignore all, start from scratch
-                RTS
-.CONT		BIT     MODEM         ;  Test MODE byte
-                BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
-                LDA     L             ;  LSD's of hex data
-                STA     (STL,X)       ;  Store current 'store index'(X=0)
-                INC     STL           ;  Increment store index.
-                BNE     NEXTITEM      ;  No carry!
-                INC     STH           ;  Add carry to 'store index' high
+	        BNE 	_CONT
+	        CLC		      ;  No! Ignore all, start from scratch
+	        RTS
+_CONT		BIT     MODEM         ;  Test MODE byte
+	        BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
+	        LDA     L             ;  LSD's of hex data
+	        STA     (STL,X)       ;  Store current 'store index'(X=0)
+	        INC     STL           ;  Increment store index.
+	        BNE     NEXTITEM      ;  No carry!
+	        INC     STH           ;  Add carry to 'store index' high
 TONEXTITEM      JMP     NEXTITEM      ;  Get next command item.
 RUNM            JMP     (XAML)        ;  Run user's program
 NOTSTOR         BMI     XAMNEXT       ;  B7 = 0 for XAM, 1 for BLOCK XAM
-                LDX     #2            ;  Copy 2 bytes
+	        LDX     #2            ;  Copy 2 bytes
 SETADR          LDA     L-1,X         ;  Copy hex data to
-                STA     STL-1,X       ;   'store index'
-                STA     XAML-1,X      ;   and to 'XAM index'
-                DEX                   ;  Next of 2 bytes
-                BNE     SETADR        ;  Loop unless X = 0
+	        STA     STL-1,X       ;   'store index'
+	        STA     XAML-1,X      ;   and to 'XAM index'
+	        DEX                   ;  Next of 2 bytes
+	        BNE     SETADR        ;  Loop unless X = 0
 NXTPRNT         BNE     PRDATA        ;  NE means no address to print
-                JSR 	CRLF
-                LDA     XAMH          ;  Output high-order byte of address
-                JSR     OUTHEX
-                LDA     XAML          ;  Output low-order byte of address
-                JSR     OUTHEX
-                LDA     #':'          ;  Print colon
-                JSR     OUTCH
+	        JSR 	CRLF
+	        LDA     XAMH          ;  Output high-order byte of address
+	        JSR     OUTHEX
+	        LDA     XAML          ;  Output low-order byte of address
+	        JSR     OUTHEX
+	        LDA     #':'          ;  Print colon
+	        JSR     OUTCH
 PRDATA          JSR 	OUTSP
-                LDA     (XAML,X)      ;  Get data from address (X=0)
-                JSR     OUTHEX        ;  Output it in hex format
+	        LDA     (XAML,X)      ;  Get data from address (X=0)
+	        JSR     OUTHEX        ;  Output it in hex format
 XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).
-                LDA     XAML          ;  See if there's more to print
-                CMP     L
-                LDA     XAMH
-                SBC     H
-                BCS     TONEXTITEM    ;  Not less! No more data to output
-                INC     XAML          ;  Increment 'examine index'
-                BNE     MOD8CHK       ;  No carry!
-                INC     XAMH
+	        LDA     XAML          ;  See if there's more to print
+	        CMP     L
+	        LDA     XAMH
+	        SBC     H
+	        BCS     TONEXTITEM    ;  Not less! No more data to output
+	        INC     XAML          ;  Increment 'examine index'
+	        BNE     MOD8CHK       ;  No carry!
+	        INC     XAMH
 MOD8CHK         LDA     XAML          ;  If address MOD 8 = 0 start new line
-                AND     #$07
-                BPL     NXTPRNT       ;  Always taken.
+	        AND     #$07
+	        BPL     NXTPRNT       ;  Always taken.
 	
 	.if APPLE1
 ; Apple 1 I/O values
 KBD     =$D010		; Apple 1 Keyboard character read.
 KBDRDY  =$D011		; Apple 1 Keyboard data waiting when negative.
 
-	.ORG $FFDC
-OUTHEX	PHA 		; Print 1 hex byte. 
+	* = $FFDC
+OUTHEX	PHA 		; Print 1 hex byte.
 	LSR
 	LSR 
 	LSR
@@ -2995,17 +2995,17 @@ PRHEX	AND #$0F	; Print 1 hex digit
 	BCC OUTCH
 	ADC #$06
 OUTCH	BIT DSP         ;  DA bit (B7) cleared yet?
-        BMI OUTCH       ;  No! Wait for display ready
-        STA DSP         ;  Output character. Sets DA
-        RTS
+	BMI OUTCH       ;  No! Wait for display ready
+	STA DSP         ;  Output character. Sets DA
+	RTS
 	.else
 IOMEM	=$E000
 PUTCH	=IOMEM+1
 KBD	=IOMEM+4
 KBDRDY  =IOMEM+4
 
-	.ORG $FFDC
-OUTHEX	PHA 		; Print 1 hex byte. 
+	* = $FFDC
+OUTHEX	PHA 		; Print 1 hex byte.
 	LSR
 	LSR 
 	LSR
@@ -3019,16 +3019,15 @@ PRHEX	AND #$0F	; Print 1 hex digit
 	ADC #$06
 OUTCH	STA PUTCH
 	RTS  
-	.ENDIF	
-
+	.endif
 	
 	.if MINIMONITOR
-	.ORG $FFFA	; INTERRUPT VECTORS
-	.WORD $0F00
-	.WORD RESET
-	.WORD DEBUG
-	.ENDIF
-	.ELSE
+	* = $FFFA	; INTERRUPT VECTORS
+	.word $0F00
+	.word RESET
+	.word DEBUG
+	.endif
+	.else
 ; Apple 1 I/O values
 OUTCH	=$FFEF		; Apple 1 Echo
 PRHEX	=$FFE5		; Apple 1 Echo

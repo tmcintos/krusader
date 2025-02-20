@@ -1,0 +1,13 @@
+
+64tass Turbo Assembler Macro V1.59.3120 memory map file
+
+Memory map for output file: ROM/krusader.65C02.bin
+
+Type        Size      Range      Size    Name
+Data:       3791   $f000-$fece   $0ecf
+Gap:          49   $fecf-$feff   $0031
+Data:        219   $ff00-$ffda   $00db
+Gap:           1   $ffdb-$ffdb   $0001
+Data:         28   $ffdc-$fff7   $001c
+Gap:           2   $fff8-$fff9   $0002
+Data:          6   $fffa-$ffff   $0006

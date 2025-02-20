@@ -1,0 +1,2405 @@
+
+; 64tass Turbo Assembler Macro V1.59.3120 listing file
+; 64tass -q -i -b -o ROM/krusader.6502.bin -L ROM/krusader.6502.lst -l ROM/krusader.6502.lbl --vice-labels --map=ROM/krusader.6502.map krusader.6502.asm
+; Fri Feb 21 16:13:20 2025
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: krusader.6502.asm
+
+=1					APPLE1  =1
+=1					INROM	=1
+=1					TABTOSPACE = 1
+=0					UNK_ERR_CHECK = 0
+=1					MINIMONITOR = INROM & 1
+=1					DOTRACE = MINIMONITOR & 1
+=1					BRKAS2 = 1		; if 1, BRK will assemble to two $00 bytes
+=$ff0f					MONTOR	=ESCAPE
+=$08					BS	=$08		; backspace
+=$20					SP	=$20		; space
+=$0d					CR	=$0D		; carriage return
+=$0a					LF	=$0A		; line feed
+=$1b					ESC	=$1B		; escape
+=$7f					INMASK  =$7F
+=$03					LNMSZ	=$03
+=$06					LBLSZ	=$06		; labels are up to 6 characters
+=$03					MNESZ	=$03		; mnemonics are always 3 characters
+=$0e					ARGSZ	=$0E		; arguments are up to 14 characters
+=$0a					COMSZ	=$0A		; comments fill the rest - up to 10 characters
+=10					ENDLBL	=LNMSZ+LBLSZ+1
+=14					ENDMNE	=ENDLBL+MNESZ+1
+=29					ENDARG	=ENDMNE+ARGSZ+1
+=40					ENDLN	=ENDARG+COMSZ+1
+=$06					SYMSZ	=$06		; size of labels
+=$27					LINESZ	=$27		; size of a line
+=35					USESZ	=LINESZ-LNMSZ-1	; usable size of a line
+=24					CNTSZ	=COMM-LABEL-1	; size of content in a line
+=$20					MAXSYM	=$20		; at most 32 local symbols (256B) and
+=$55					MAXFRF	=$55		; 85 forward references (896B)
+="#"					IMV	='#'		; Indicates immediate mode value
+="$"					HEX	='$'		; Indicates a hex value
+="("					OPEN	='('		; Open bracket for indirect addressing
+=")"					CLOSE	=')'		; Close bracket for indirect addressing
+="*"					PC	='*'		; Indicates PC relative addressing
+="<"					LOBYTE	='<'		; Indicates lo-byte of following word
+=">"					HIBYTE	='>'		; Indicates hi-byte of following word
+="+"					PLUS	='+'		; Plus in simple expressions
+="-"					MINUS	='-'		; Minus in simple expressions
+="."					DOT	='.'		; Indicates a local label
+="'"					QUOTE	=''''		; delimits a string
+=","					COMMA	=','
+=";"					CMNT	=';'		; indicates a full line comment
+="?"					PROMPT	='?'
+=$00					EOL	=$00		; end of line marker
+=$01					EOFLD	=$01		; end of field in tokenised source line
+=$02					BLANK	=$02		; used to mark a blank line
+=$fe					PRGEND	=$FE		; used to flag end of program parsing
+=$ff					FAIL	=$FF		; used to flag failure in various searches
+=$00					IOBUF	=$00		; I/O buffer for source code input and analysis
+=$04					LABEL	=$04		; label starts here
+=$0b					MNE	=$0B		; mnemonic starts here
+=$0f					ARGS	=$0F		; arguments start here
+=$1d					COMM    =$1D		; comments start here
+=$29					FREFTL	=$29		; address of forward reference table
+=$2a					FREFTH	=$2A
+=$2b					NFREF	=$2B		; number of forward symbols
+=$2c					RECNM	=$2C		; number of table entries
+=$2d					RECSZ	=$2D		; size of table entries
+=$2e					RECSIG	=$2E		; significant characters in table entries
+=$2f					XSAV	=$2F
+=$30					YSAV	=$30
+=$3c					CURMNE	=$3C		; Holds the current mne index
+=$3d					CURADM	=$3D		; Holds the current addressing mode
+=$3e					LVALL	=$3E		; Storage for a label value
+=$3f					LVALH	=$3F
+=$40					TBLL	=$40		; address of search table
+=$41					TBLH	=$41
+=$42					STRL	=$42		; address of search string
+=$43					STRH	=$43
+=$44					SCRTCH	=$44		; scratch location
+=$45					NPTCH	=$45		; counts frefs when patching
+=$46					PTCHTL	=$46		; address of forward reference being patched
+=$47					PTCHTH	=$47
+=$48					FLGSAV	=$48
+=$50					MISCL	=$50		; Miscellaneous address pointer
+=$51					MISCH	=$51
+=$52					MISC2L	=$52		; And another
+=$53					MISC2H	=$53
+=$54					TEMP1	=$54		; general purpose storage
+=$55					TEMP2	=$55
+=$56					TEMP3	=$56
+=$57					TEMP4	=$57
+=$56					LMNE	=TEMP3		; alias for compression and expansion routines
+=$57					RMNE	=TEMP4
+=$58					FRFLAG	=$58		; if nonzero, disallow forward references
+=$59					ERFLAG	=$59		; if nonzero, do not report error line
+=$5a					HADFRF	=$5A		; if nonzero, handled a forward reference
+=$5b					PRFLAG	=$5B
+=$e0					XQT	=$E0
+=$e9					GSYMTL	=$E9		; address of the global symbol table
+=$ea					GSYMTH	=$EA
+=$eb					NGSYM	=$EB		; number of global symbols
+=$ec					LSYMTL	=$EC		; address of the local symbol table
+=$ed					LSYMTH	=$ED
+=$ee					NLSYM	=$EE		; number of local symbols
+=$f0					REGS	=$F0
+=$f0					SAVP	=REGS
+=$f1					SAVS	=$F1
+=$f2					SAVY	=$F2
+=$f3					SAVX	=$F3
+=$f4					SAVA	=$F4
+=$f5					CURPCL	=$F5		; Current PC
+=$f6					CURPCH	=$F6
+=$f8					CODEH	=$F8		; hi byte of code storage area (low is $00)
+=$f9					TABLEH	=$F9		; hi byte of symbol table area
+=$fa					LINEL	=$FA		; Current source line number (starts at 0)
+=$fb					LINEH	=$FB
+=$fc					CURLNL	=$FC		; Current source line address
+=$fd					CURLNH	=$FD
+=$fe					SRCSTL	=$FE		; source code start address
+=$ff					SRCSTH	=$FF
+=$29					FORMAT	=FREFTL		; re-use spare locations
+=$2a					LENGTH	=FREFTH
+=$2b					COUNT	=NFREF
+=$f5					PCL	=CURPCL
+=$f6					PCH	=CURPCH
+.f000					MAIN
+.f000	a9 03		lda #$03		LDA #$03
+.f002	85 f8		sta $f8			STA CODEH
+.f004	a9 20		lda #$20		LDA #$20
+.f006	85 ff		sta $ff			STA SRCSTH
+.f008	a9 7c		lda #$7c		LDA #$7C
+.f00a	85 f9		sta $f9			STA TABLEH
+.f00c	a2 1b		ldx #$1b		LDX #MSGSZ
+.f00e	bd 67 fd	lda $fd67,x	_NEXT	LDA MSG-1,X
+.f011	20 ef ff	jsr $ffef		JSR OUTCH
+.f014	ca		dex			DEX
+.f015	d0 f7		bne $f00e		BNE _NEXT
+.f017	ca		dex			DEX
+.f018	9a		txs			TXS		; reset stack pointer on startup
+.f019	20 71 f0	jsr $f071		JSR SHINIT	; default source line and address data
+.f01c					SHELL
+.f01c	d8		cld			CLD		; just incase
+.f01d	a9 00		lda #$00		LDA #$00
+.f01f	85 5b		sta $5b			STA PRFLAG
+.f021	20 ce f0	jsr $f0ce		JSR FILBUF
+.f024	a2 0f		ldx #$0f		LDX #ARGS
+.f026	86 58		stx $58			STX FRFLAG	; set flags in SHELL
+.f028	86 59		stx $59			STX ERFLAG
+.f02a	20 e5 fe	jsr $fee5		JSR CRLF
+.f02d	a9 3f		lda #$3f		LDA #PROMPT
+.f02f	20 ef ff	jsr $ffef		JSR OUTCH	; prompt
+.f032	20 e0 fe	jsr $fee0		JSR OUTSP	; can drop this if desperate for 3 more bytes :-)
+.f035	20 ea fe	jsr $feea	_KEY	JSR GETCH
+.f038	c9 08		cmp #$08		CMP #BS
+.f03a	f0 e0		beq $f01c		BEQ SHELL	; start again
+.f03c	c9 0d		cmp #$0d		CMP #CR
+.f03e	f0 08		beq $f048		BEQ _RUN
+.f040	20 ef ff	jsr $ffef		JSR OUTCH
+.f043	95 00		sta $00,x		STA IOBUF,X
+.f045	e8		inx			INX
+.f046	d0 ed		bne $f035		BNE _KEY	; always branches
+.f048	a5 0f		lda $0f		_RUN	LDA ARGS
+.f04a	f0 d0		beq $f01c		BEQ SHELL	; empty command line
+.f04c	a5 10		lda $10			LDA ARGS+1	; ensure command is just a single letter
+.f04e	f0 04		beq $f054		BEQ _OK
+.f050	c9 20		cmp #$20		CMP #SP
+.f052	d0 0c		bne $f060		BNE _ERR;SHLERR
+.f054	a2 0d		ldx #$0d	_OK	LDX #NUMCMD
+.f056	bd 27 fd	lda $fd27,x	_NEXT	LDA CMDS-1,X	; find the typed command
+.f059	c5 0f		cmp $0f			CMP ARGS
+.f05b	f0 0e		beq $f06b		BEQ GOTCMD
+.f05d	ca		dex			DEX
+.f05e	d0 f6		bne $f056		BNE _NEXT
+.f060	48		pha		_ERR	PHA		; put dummy data on the stack
+.f061	48		pha			PHA
+.f062					SHLERR
+.f062	a0 03		ldy #$03		LDY #SYNTAX
+.f064	68		pla		ERR2	PLA		; need to clean up the stack
+.f065	68		pla			PLA
+.f066	20 69 f4	jsr $f469		JSR SHWERR
+.f069	d0 b1		bne $f01c		BNE SHELL
+.f06b	20 d6 f0	jsr $f0d6	GOTCMD	JSR RUNCMD
+.f06e	4c 1c f0	jmp $f01c		JMP SHELL	; ready for next command
+.f071					SHINIT
+.f071	a9 00		lda #$00		LDA #$00
+.f073	a8		tay			TAY
+.f074	85 fe		sta $fe			STA SRCSTL	; low byte zero for storage area
+.f076	91 fe		sta ($fe),y		STA (SRCSTL),Y	; and put a zero in it for EOP
+.f078					TOSTRT
+.f078	a5 ff		lda $ff			LDA SRCSTH
+.f07a	85 fd		sta $fd			STA CURLNH
+.f07c	a9 00		lda #$00		LDA #$00
+.f07e	85 fa		sta $fa			STA LINEL
+.f080	85 fb		sta $fb			STA LINEH	; 0 lines
+.f082	85 fc		sta $fc			STA CURLNL
+.f084	60		rts			RTS		; leaves $00 in A
+.f085					PANIC
+.f085	20 71 f0	jsr $f071		JSR SHINIT
+.f088	a5 11		lda $11			LDA ARGS+2
+.f08a	d0 02		bne $f08e		BNE _SKIP
+.f08c	a9 01		lda #$01		LDA #$01
+.f08e	91 fe		sta ($fe),y	_SKIP	STA (SRCSTL),Y	; Y is $00 from SHINIT
+.f090	60		rts			RTS
+.f091					VALUE
+.f091	20 ab f0	jsr $f0ab		JSR ADDARG
+.f094	f0 cc		beq $f062		BEQ SHLERR
+.f096	20 e5 fe	jsr $fee5		JSR CRLF
+.f099	a5 3f		lda $3f			LDA LVALH
+.f09b	a6 3e		ldx $3e			LDX LVALL
+.f09d	4c 67 fb	jmp $fb67		JMP PRNTAX
+.f0a0					RUN
+.f0a0	20 ab f0	jsr $f0ab		JSR ADDARG
+.f0a3	f0 bd		beq $f062		BEQ SHLERR
+.f0a5	20 e5 fe	jsr $fee5		JSR CRLF
+.f0a8	6c 3e 00	jmp ($003e)		JMP (LVALL)	; jump to the address
+.f0ab					ADDARG
+.f0ab	a2 02		ldx #$02		LDX #$02
+.f0ad	b5 0f		lda $0f,x		LDA ARGS,X
+.f0af	f0 08		beq $f0b9		BEQ _NOARG
+.f0b1	48		pha			PHA
+.f0b2	20 d3 f7	jsr $f7d3		JSR EVAL
+.f0b5	68		pla			PLA
+.f0b6	e8		inx			INX
+.f0b7	f0 ab		beq $f064		BEQ ERR2;SHLERR
+.f0b9	60		rts		_NOARG	RTS
+.f0ba					PCTOLV
+.f0ba	a5 f5		lda $f5			LDA CURPCL
+.f0bc	85 3e		sta $3e			STA LVALL
+.f0be	a5 f6		lda $f6			LDA CURPCH
+.f0c0	85 3f		sta $3f			STA LVALH
+.f0c2	60		rts			RTS
+.f0c3					LVTOPC
+.f0c3	a5 3e		lda $3e			LDA LVALL
+.f0c5	85 f5		sta $f5			STA CURPCL
+.f0c7	a5 3f		lda $3f			LDA LVALH
+.f0c9	85 f6		sta $f6			STA CURPCH
+.f0cb	60		rts			RTS
+.f0cc					FILLSP
+.f0cc	a9 20		lda #$20		LDA #SP
+.f0ce					FILBUF
+.f0ce	a2 27		ldx #$27		LDX #LINESZ
+.f0d0	95 ff		sta $ff,x	_CLR	STA <(IOBUF-1),X
+.f0d2	ca		dex			DEX
+.f0d3	d0 fb		bne $f0d0		BNE _CLR
+.f0d5	60		rts			RTS
+.f0d6					RUNCMD
+.f0d6	bd 34 fd	lda $fd34,x		LDA CMDH-1,X
+.f0d9	48		pha		  	PHA
+.f0da	bd 41 fd	lda $fd41,x	  	LDA CMDL-1,X
+.f0dd	48		pha		  	PHA
+.f0de	60		rts		  	RTS
+.f0df					NEW
+.f0df	20 71 f0	jsr $f071		JSR SHINIT
+.f0e2	4c 58 f1	jmp $f158		JMP INSERT
+.f0e5					LIST
+.f0e5	20 78 f0	jsr $f078		JSR TOSTRT
+.f0e8	20 1d f1	jsr $f11d		JSR GETARG
+.f0eb	f0 03		beq $f0f0		BEQ _NEXT	; no args, list from start
+.f0ed	20 53 f2	jsr $f253		JSR GOTOLN	; deal with arguments if necessary
+.f0f0	a0 00		ldy #$00	_NEXT	LDY #$00
+.f0f2	b1 fc		lda ($fc),y		LDA (CURLNL),Y
+.f0f4	f0 0e		beq $f104		BEQ _RET
+.f0f6	20 72 f2	jsr $f272		JSR PRNTLN
+.f0f9	20 dc f4	jsr $f4dc		JSR UPDTCL
+.f0fc	ad 11 d0	lda $d011		LDA KBDRDY
+.f0ff	10 ef		bpl $f0f0		BPL _NEXT
+.f101	ad 10 d0	lda $d010		LDA KBD
+.f104	60		rts		_RET	RTS
+.f105					MEM
+.f105	20 4f f2	jsr $f24f		JSR TOEND	; set CURLNL,H to the end
+.f108	20 e5 fe	jsr $fee5		JSR CRLF
+.f10b	a2 04		ldx #$04		LDX #$04
+.f10d	b5 fb		lda $fb,x	_LOOP	LDA CURLNL-1,X
+.f10f	20 dc ff	jsr $ffdc		JSR OUTHEX
+.f112	e0 03		cpx #$03		CPX #$03
+.f114	d0 03		bne $f119		BNE _SKIP
+.f116	20 b9 fe	jsr $feb9		JSR PRDASH
+.f119	ca		dex		_SKIP	DEX
+.f11a	d0 f1		bne $f10d		BNE _LOOP
+.f11c	60		rts		RET	RTS
+.f11d					GETARG
+.f11d	a0 00		ldy #$00		LDY #$00
+.f11f	84 30		sty $30			STY YSAV
+.f121	a2 01		ldx #$01		LDX #$01
+.f123	b5 0f		lda $0f,x	_NEXT	LDA ARGS,X
+.f125	f0 25		beq $f14c		BEQ _DONE	; null terminator
+.f127	c9 20		cmp #$20		CMP #SP		; find the space
+.f129	f0 07		beq $f132		BEQ _CVT
+.f12b	c9 24		cmp #$24		CMP #HEX	; or $ symbol
+.f12d	f0 03		beq $f132		BEQ _CVT
+.f12f	e8		inx			INX
+.f130	d0 f1		bne $f123		BNE _NEXT
+.f132	e6 30		inc $30		_CVT	INC YSAV	; count args
+.f134	a9 24		lda #$24		LDA #HEX
+.f136	95 0f		sta $0f,x		STA ARGS,X	; replace the space with '$' and convert
+.f138	20 5b f9	jsr $f95b		JSR CONVRT
+.f13b	e8		inx			INX
+.f13c	f0 5f		beq $f19d		BEQ LCLERR
+.f13e	a5 3e		lda $3e			LDA LVALL
+.f140	99 54 00	sta $0054,y		STA TEMP1,Y
+.f143	c8		iny			INY
+.f144	a5 3f		lda $3f			LDA LVALH
+.f146	99 54 00	sta $0054,y		STA TEMP1,Y
+.f149	c8		iny			INY
+.f14a	d0 d7		bne $f123		BNE _NEXT	; always branches
+.f14c	a4 30		ldy $30		_DONE	LDY YSAV
+.f14e	60		rts			RTS		; m in TEMP1,2, n in TEMP3,4
+.f14f					EDIT
+.f14f	20 1d f1	jsr $f11d		JSR GETARG
+.f152	88		dey			DEY
+.f153	d0 48		bne $f19d		BNE LCLERR
+.f155	20 c7 f1	jsr $f1c7		JSR DELETE	; must not overwrite the command input buffer
+.f158					INSERT
+.f158	20 1d f1	jsr $f11d		JSR GETARG	; deal with arguments if necessary
+.f15b	e8		inx			INX
+.f15c	f0 3f		beq $f19d		BEQ LCLERR
+.f15e	98		tya			TYA
+.f15f	d0 06		bne $f167		BNE _ARGS
+.f161	20 4f f2	jsr $f24f		JSR TOEND	; insert at the end
+.f164	18		clc			CLC
+.f165	90 03		bcc $f16a		BCC _IN
+.f167	20 53 f2	jsr $f253	_ARGS	JSR GOTOLN	; if no such line will insert at end
+.f16a	20 de f2	jsr $f2de	_IN	JSR INPUT	; Get one line
+.f16d	e0 ff		cpx #$ff		CPX #FAIL	; Was there an error?
+.f16f	f0 ab		beq $f11c		BEQ RET;
+.f171	86 2f		stx $2f			STX XSAV	; save X (data size)
+.f173	a5 fd		lda $fd			LDA CURLNH
+.f175	85 51		sta $51			STA MISCH
+.f177	85 53		sta $53			STA MISC2H
+.f179	a5 fc		lda $fc			LDA CURLNL
+.f17b	85 50		sta $50			STA MISCL	; src in MISCL,H now
+.f17d	18		clc			CLC
+.f17e	65 2f		adc $2f			ADC XSAV
+.f180	85 52		sta $52			STA MISC2L
+.f182	90 02		bcc $f186		BCC _READY
+.f184	e6 53		inc $53			INC MISC2H	; MISC2L,H is destination
+.f186	20 a0 f1	jsr $f1a0	_READY	JSR GETSZ
+.f189	20 25 f2	jsr $f225		JSR MOVEUP	; do the move
+.f18c	a0 00		ldy #$00		LDY #$00
+.f18e	b9 00 00	lda $0000,y	_MOVE	LDA IOBUF,Y
+.f191	91 fc		sta ($fc),y		STA (CURLNL),Y
+.f193	c8		iny			INY
+.f194	c4 2f		cpy $2f			CPY XSAV
+.f196	d0 f6		bne $f18e		BNE _MOVE
+.f198	20 dc f4	jsr $f4dc		JSR UPDTCL	; update CURLNL,H
+.f19b	d0 cd		bne $f16a		BNE _IN		; always branches
+.f19d					LCLERR
+.f19d	4c 62 f0	jmp $f062		JMP SHLERR
+.f1a0					GETSZ
+.f1a0	a2 fc		ldx #$fc		LDX #-$04
+.f1a2	b5 fe		lda $fe,x	_LOOP	LDA CURLNH+1,X
+.f1a4	48		pha			PHA		; save CURLN and LINEN on the stack
+.f1a5	e8		inx			INX
+.f1a6	d0 fa		bne $f1a2		BNE _LOOP
+.f1a8	20 4f f2	jsr $f24f		JSR TOEND
+.f1ab	38		sec			SEC
+.f1ac	a5 fc		lda $fc			LDA CURLNL
+.f1ae	e5 50		sbc $50			SBC MISCL
+.f1b0	85 54		sta $54			STA TEMP1
+.f1b2	a5 fd		lda $fd			LDA CURLNH
+.f1b4	e5 51		sbc $51			SBC MISCH
+.f1b6	85 55		sta $55			STA TEMP2
+.f1b8	e6 54		inc $54			INC TEMP1
+.f1ba	d0 02		bne $f1be		BNE _SKIP
+.f1bc	e6 55		inc $55			INC TEMP2
+.f1be	a2 04		ldx #$04	_SKIP	LDX #$04
+.f1c0	68		pla		_LOOP2	PLA		; get CURLN and LINEN from the stack
+.f1c1	95 f9		sta $f9,x		STA LINEL-1,X
+.f1c3	ca		dex			DEX
+.f1c4	d0 fa		bne $f1c0		BNE _LOOP2
+.f1c6	60		rts			RTS
+.f1c7					DELETE
+.f1c7	20 1d f1	jsr $f11d		JSR GETARG
+.f1ca	f0 d1		beq $f19d		BEQ LCLERR
+.f1cc	84 30		sty $30			STY YSAV
+.f1ce	20 53 f2	jsr $f253	_DOIT	JSR GOTOLN	; this leaves TEMP1 in Y and TEMP2 in X
+.f1d1	e0 ff		cpx #$ff		CPX #FAIL
+.f1d3	f0 c8		beq $f19d		BEQ LCLERR
+.f1d5	a5 fc		lda $fc			LDA CURLNL
+.f1d7	85 52		sta $52			STA MISC2L
+.f1d9	a5 fd		lda $fd			LDA CURLNH
+.f1db	85 53		sta $53			STA MISC2H	; destination address is set in MISC2L,H
+.f1dd	a5 30		lda $30			LDA YSAV
+.f1df	4a		lsr a			LSR
+.f1e0	f0 0c		beq $f1ee		BEQ _INC
+.f1e2	a6 57		ldx $57			LDX TEMP4
+.f1e4	a4 56		ldy $56			LDY TEMP3	; Validate the range arguments
+.f1e6	e4 55		cpx $55			CPX TEMP2	; First compare high bytes
+.f1e8	d0 02		bne $f1ec		BNE _CHK	; If TEMP4 != TEMP2, we just need to check carry
+.f1ea	c4 54		cpy $54			CPY TEMP1	; Compare low bytes when needed
+.f1ec	90 af		bcc $f19d	_CHK	BCC LCLERR	; If carry clear, 2nd argument is too low
+.f1ee	c8		iny		_INC	INY		; Now increment the second argument
+.f1ef	d0 01		bne $f1f2		BNE _CONT
+.f1f1	e8		inx			INX
+.f1f2	86 55		stx $55		_CONT	STX TEMP2
+.f1f4	84 54		sty $54			STY TEMP1
+.f1f6	20 53 f2	jsr $f253		JSR GOTOLN
+.f1f9	a5 fc		lda $fc			LDA CURLNL
+.f1fb	85 50		sta $50			STA MISCL
+.f1fd	a5 fd		lda $fd			LDA CURLNH
+.f1ff	85 51		sta $51			STA MISCH
+.f201	20 a0 f1	jsr $f1a0		JSR GETSZ
+=$50					FROM	=MISCL		; move from MISCL,H
+=$52					TO	=MISC2L		; to MISCL2,H
+=$54					SIZEL	=TEMP1
+=$55					SIZEH	=TEMP2
+.f204					MOVEDN
+.f204	a0 00		ldy #$00		LDY #$00
+.f206	a6 55		ldx $55			LDX SIZEH
+.f208	f0 0e		beq $f218		BEQ _MD2
+.f20a	b1 50		lda ($50),y	_MD1	LDA (FROM),Y ; move a page at a time
+.f20c	91 52		sta ($52),y		STA (TO),Y
+.f20e	c8		iny			INY
+.f20f	d0 f9		bne $f20a		BNE _MD1
+.f211	e6 51		inc $51			INC FROM+1
+.f213	e6 53		inc $53			INC TO+1
+.f215	ca		dex			DEX
+.f216	d0 f2		bne $f20a		BNE _MD1
+.f218	a6 54		ldx $54		_MD2	LDX SIZEL
+.f21a	f0 08		beq $f224		BEQ _MD4
+.f21c	b1 50		lda ($50),y	_MD3	LDA (FROM),Y ; move the remaining bytes
+.f21e	91 52		sta ($52),y		STA (TO),Y
+.f220	c8		iny			INY
+.f221	ca		dex			DEX
+.f222	d0 f8		bne $f21c		BNE _MD3
+.f224	60		rts		_MD4	RTS
+.f225					MOVEUP
+.f225	a6 55		ldx $55			LDX SIZEH	; the last byte must be moved first
+.f227	18		clc			CLC		; start at the final pages of FROM and TO
+.f228	8a		txa			TXA
+.f229	65 51		adc $51			ADC FROM+1
+.f22b	85 51		sta $51			STA FROM+1
+.f22d	18		clc			CLC
+.f22e	8a		txa			TXA
+.f22f	65 53		adc $53			ADC TO+1
+.f231	85 53		sta $53			STA TO+1
+.f233	e8		inx			INX		; allows the use of BNE after the DEX below
+.f234	a4 54		ldy $54			LDY SIZEL
+.f236	f0 0e		beq $f246		BEQ _MU3
+.f238	88		dey			DEY		; move bytes on the last page first
+.f239	f0 07		beq $f242		BEQ _MU2
+.f23b	b1 50		lda ($50),y	_MU1	LDA (FROM),Y
+.f23d	91 52		sta ($52),y		STA (TO),Y
+.f23f	88		dey			DEY
+.f240	d0 f9		bne $f23b		BNE _MU1
+.f242	b1 50		lda ($50),y	_MU2	LDA (FROM),Y	; handle Y = 0 separately
+.f244	91 52		sta ($52),y		STA (TO),Y
+.f246	88		dey		_MU3	DEY
+.f247	c6 51		dec $51			DEC FROM+1	; move the next page (if any)
+.f249	c6 53		dec $53			DEC TO+1
+.f24b	ca		dex			DEX
+.f24c	d0 ed		bne $f23b		BNE _MU1
+.f24e	60		rts			RTS
+.f24f					TOEND
+.f24f	a9 ff		lda #$ff		LDA #$FF
+.f251	85 55		sta $55			STA TEMP2	; makes illegal line number
+.f253					GOTOLN
+=$f2b1					EOP	= LFAIL
+=$f2b3					GOTIT	= LRET
+.f253	20 78 f0	jsr $f078		JSR TOSTRT
+.f256					_NXTLN
+.f256	a4 54		ldy $54			LDY TEMP1
+.f258	c4 fa		cpy $fa			CPY LINEL
+.f25a	d0 06		bne $f262		BNE _NO
+.f25c	a6 55		ldx $55			LDX TEMP2
+.f25e	e4 fb		cpx $fb			CPX LINEH
+.f260	f0 51		beq $f2b3		BEQ GOTIT
+.f262	a0 ff		ldy #$ff	_NO	LDY #$FF
+.f264	c8		iny		_NXTBT	INY		; find EOL
+.f265	b1 fc		lda ($fc),y		LDA (CURLNL),Y
+.f267	d0 fb		bne $f264		BNE _NXTBT
+.f269	98		tya			TYA
+.f26a	f0 45		beq $f2b1		BEQ EOP		; null at start of line => end of program
+.f26c	c8		iny			INY
+.f26d	20 dc f4	jsr $f4dc		JSR UPDTCL	; increment CURLNL,H by Y bytes
+.f270	d0 e4		bne $f256		BNE _NXTLN	; always branches
+.f272					PRNTLN
+.f272	20 e5 fe	jsr $fee5		JSR CRLF
+.f275	86 2f		stx $2f			STX XSAV
+.f277	20 ee f3	jsr $f3ee		JSR DETKN
+.f27a	c8		iny			INY
+.f27b	20 d6 fe	jsr $fed6		JSR PRLNNM
+.f27e	a2 00		ldx #$00		LDX #$00
+.f280	b5 04		lda $04,x	_PRINT	LDA LABEL,X
+.f282	f0 06		beq $f28a		BEQ _DONE	; null terminator
+.f284	20 ef ff	jsr $ffef		JSR OUTCH
+.f287	e8		inx			INX
+.f288	d0 f6		bne $f280		BNE _PRINT
+.f28a	a6 2f		ldx $2f		_DONE	LDX XSAV
+.f28c	60		rts			RTS
+.f28d					NEXTCH
+.f28d	20 ea fe	jsr $feea		JSR GETCH
+.f290	c9 09		cmp #$09		CMP #$09	; is it a tab?
+.f292	d0 02		bne $f296		BNE _SKIP
+.f294	a9 20		lda #$20		LDA #SP
+.f296	c9 20		cmp #$20	_SKIP	CMP #SP		; valid ASCII range is $20 to $5D
+.f298	10 1a		bpl $f2b4		BPL CHANM	; check alpha numeric entries
+.f29a	a8		tay			TAY
+.f29b	68		pla			PLA
+.f29c	68		pla			PLA
+.f29d	68		pla			PLA
+.f29e	68		pla			PLA		; wipe out return addresses
+.f29f	c0 08		cpy #$08		CPY #BS
+.f2a1	f0 3b		beq $f2de		BEQ INPUT	; just do it all again
+.f2a3	c0 0d		cpy #$0d	_NOBS	CPY #CR
+.f2a5	d0 0a		bne $f2b1		BNE LFAIL
+.f2a7	e0 04		cpx #$04		CPX #LABEL	; CR at start of LABEL means a blank line
+.f2a9	f0 29		beq $f2d4		BEQ DOBLNK
+.f2ab	a9 00		lda #$00		LDA #EOL
+.f2ad	95 00		sta $00,x		STA IOBUF,X
+.f2af	f0 5c		beq $f30d		BEQ GOTEOL
+.f2b1	a2 ff		ldx #$ff	LFAIL	LDX #FAIL	; may flag error or just end
+.f2b3	60		rts		LRET	RTS
+.f2b4	e0 27		cpx #$27	CHANM	CPX #LINESZ	; ignore any characters over the end of the line
+.f2b6	10 1a		bpl $f2d2		BPL CHNO
+.f2b8	c9 5e		cmp #$5e		CMP #']'+1	; is character is in range $20-$5D?
+.f2ba	10 16		bpl $f2d2		BPL CHNO	; branch to NO...
+.f2bc	38		sec		CHOK	SEC		; C flag on indicates success
+.f2bd	60		rts			RTS
+.f2be	c9 2e		cmp #$2e	CHKLBL	CMP #DOT	; here are more specific checks
+.f2c0	f0 fa		beq $f2bc		BEQ CHOK
+.f2c2	c9 30		cmp #$30	CHKALN	CMP #'0'	; check alpha-numeric
+.f2c4	30 0c		bmi $f2d2		BMI CHNO	; less than 0
+.f2c6	c9 3a		cmp #$3a		CMP #'9'+1
+.f2c8	30 f2		bmi $f2bc		BMI CHOK	; between 0 and 9
+.f2ca	c9 41		cmp #$41	CHKLET	CMP #'A'
+.f2cc	30 04		bmi $f2d2		BMI CHNO	; less than A
+.f2ce	c9 5b		cmp #$5b		CMP #'Z'+1
+.f2d0	30 ea		bmi $f2bc		BMI CHOK	; between A and Z
+.f2d2	18		clc		CHNO	CLC
+.f2d3	60		rts			RTS		; C flag off indicates failure
+.f2d4					DOBLNK
+.f2d4	a9 02		lda #$02		LDA #BLANK
+.f2d6	aa		tax			TAX		; BLANK = #$02, and that is also the
+.f2d7	85 00		sta $00			STA IOBUF	; tokenised size of a blank line
+.f2d9	a9 00		lda #$00		LDA #EOL	; (and only a blank line)
+.f2db	85 01		sta $01			STA IOBUF+1
+.f2dd	60		rts		ENDIN	RTS
+.f2de					INPUT
+.f2de	20 cc f0	jsr $f0cc		JSR FILLSP
+.f2e1	a9 00		lda #$00		LDA #EOL	; need this marker at the start of the comments
+.f2e3	85 1d		sta $1d			STA COMM	; for when return hit in args field
+.f2e5	20 e5 fe	jsr $fee5		JSR CRLF
+.f2e8	20 d6 fe	jsr $fed6		JSR PRLNNM
+.f2eb	a2 04		ldx #$04		LDX #LABEL	; point to LABEL area
+.f2ed	a9 0a		lda #$0a		LDA #ENDLBL
+.f2ef	20 9c f3	jsr $f39c		JSR ONEFLD
+.f2f2	20 c4 f3	jsr $f3c4		JSR INSSPC	; Move to mnemonic field
+.f2f5	a5 04		lda $04			LDA LABEL
+.f2f7	c9 3b		cmp #$3b		CMP #CMNT
+.f2f9	f0 0d		beq $f308		BEQ _CMNT
+.f2fb	a9 0e		lda #$0e		LDA #ENDMNE
+.f2fd	20 9c f3	jsr $f39c		JSR ONEFLD
+.f300	20 c4 f3	jsr $f3c4		JSR INSSPC	; Move to args field
+.f303	a9 1d		lda #$1d		LDA #ENDARG
+.f305	20 9c f3	jsr $f39c		JSR ONEFLD
+.f308	a9 00		lda #$00	_CMNT	LDA #EOL
+.f30a	20 9c f3	jsr $f39c		JSR ONEFLD
+.f30d					GOTEOL
+.f30d					TOTKN
+.f30d	a2 00		ldx #$00		LDX #$00
+.f30f	86 51		stx $51			STX MISCH
+.f311	a9 20		lda #$20		LDA #SP
+.f313	85 55		sta $55			STA TEMP2
+.f315	a9 04		lda #$04		LDA #LABEL
+.f317	85 50		sta $50			STA MISCL
+.f319	a9 01		lda #$01		LDA #EOFLD
+.f31b	85 54		sta $54			STA TEMP1
+.f31d	20 d7 f3	jsr $f3d7		JSR TKNISE
+.f320	a4 04		ldy $04			LDY LABEL
+.f322	c0 3b		cpy #$3b		CPY #CMNT
+.f324	d0 04		bne $f32a		BNE _CONT
+.f326	a9 0b		lda #$0b		LDA #MNE
+.f328	d0 5f		bne $f389		BNE ISCMNT	; always branches
+.f32a	8a		txa		_CONT	TXA		; save X
+.f32b	48		pha			PHA
+.f32c					SRCHMN
+.f32c					CMPMNE
+.f32c	18		clc			CLC
+.f32d	66 56		ror $56			ROR LMNE
+.f32f	a2 03		ldx #$03		LDX #$03
+.f331	38		sec		_NEXT2	SEC
+.f332	b5 0a		lda $0a,x		LDA MNE-1,X
+.f334	e9 40		sbc #$40		SBC #'A'-1
+.f336	a0 05		ldy #$05		LDY #$05
+.f338	4a		lsr a		_LOOP2	LSR
+.f339	66 56		ror $56			ROR LMNE
+.f33b	66 57		ror $57			ROR RMNE
+.f33d	88		dey			DEY
+.f33e	d0 f8		bne $f338		BNE _LOOP2
+.f340	ca		dex			DEX
+.f341	d0 ee		bne $f331		BNE _NEXT2
+.f343	a2 38		ldx #$38		LDX #NUMMN	; Number of mnemonics
+.f345	bd e8 fb	lda $fbe8,x	_LOOP	LDA LMNETB-1,X
+.f348	c5 56		cmp $56			CMP LMNE
+.f34a	d0 07		bne $f353		BNE _NXT
+.f34c	bd 20 fc	lda $fc20,x		LDA RMNETB-1,X
+.f34f	c5 57		cmp $57			CMP RMNE
+.f351	f0 03		beq $f356		BEQ _FND
+.f353	ca		dex		_NXT	DEX
+.f354	d0 ef		bne $f345		BNE _LOOP
+.f356	ca		dex		_FND	DEX		; X = $FF for failure
+.f357	8a		txa			TXA
+.f358	c9 ff		cmp #$ff		CMP #FAIL
+.f35a	d0 19		bne $f375		BNE _FOUND
+.f35c	a5 0b		lda $0b			LDA MNE		; or a directive?
+.f35e	c9 2e		cmp #$2e		CMP #DOT
+.f360	d0 0c		bne $f36e		BNE _ERR
+.f362	a2 05		ldx #$05		LDX #NUMDIR
+.f364	a5 0c		lda $0c			LDA MNE+1
+.f366	dd 4e fd	cmp $fd4e,x	_NEXT	CMP DIRS-1,X
+.f369	f0 09		beq $f374		BEQ _FDIR
+.f36b	ca		dex			DEX
+.f36c	d0 f8		bne $f366		BNE _NEXT
+.f36e	68		pla		_ERR	PLA
+.f36f	a0 01		ldy #$01		LDY #INVMNE
+.f371	4c 69 f4	jmp $f469		JMP SHWERR
+.f374	ca		dex		_FDIR	DEX
+.f375	a8		tay		_FOUND	TAY		; put mnemonic/directive code in Y
+.f376	c8		iny			INY		; offset by 1 so no code $00
+.f377	68		pla			PLA		; restore Y
+.f378	aa		tax			TAX
+.f379	94 00		sty $00,x		STY IOBUF,X
+.f37b	e8		inx			INX
+.f37c	a9 0f		lda #$0f		LDA #ARGS
+.f37e	85 50		sta $50			STA MISCL
+.f380	20 d7 f3	jsr $f3d7		JSR TKNISE
+.f383	86 2f		stx $2f			STX XSAV
+.f385	e6 2f		inc $2f			INC XSAV
+.f387	a9 1d		lda #$1d		LDA #COMM
+.f389	85 50		sta $50		ISCMNT	STA MISCL
+.f38b	a9 00		lda #$00		LDA #EOL
+.f38d	85 54		sta $54			STA TEMP1
+.f38f	85 55		sta $55			STA TEMP2
+.f391	20 d7 f3	jsr $f3d7		JSR TKNISE
+.f394	e4 2f		cpx $2f			CPX XSAV
+.f396	d0 03		bne $f39b		BNE _RET
+.f398	ca		dex			DEX		; no args or comments, so stop early
+.f399	95 ff		sta $ff,x		STA <(IOBUF-1),X	; A already holds $00
+.f39b	60		rts		_RET 	RTS
+.f39c					ONEFLD
+.f39c	85 54		sta $54			STA TEMP1	; last position
+.f39e	20 8d f2	jsr $f28d	_NEXT	JSR NEXTCH	; catches ESC, CR and BS
+.f3a1	90 fb		bcc $f39e		BCC _NEXT	; only allow legal keys
+.f3a3	20 ef ff	jsr $ffef		JSR OUTCH	; echo
+.f3a6	95 00		sta $00,x		STA IOBUF,X
+.f3a8	e8		inx			INX
+.f3a9	c9 20		cmp #$20		CMP #SP
+.f3ab	f0 05		beq $f3b2		BEQ _FILL
+.f3ad	e4 54		cpx $54			CPX TEMP1
+.f3af	d0 ed		bne $f39e		BNE _NEXT
+.f3b1	60		rts		_RET	RTS
+.f3b2	a5 54		lda $54		_FILL	LDA TEMP1
+.f3b4	f0 e8		beq $f39e		BEQ _NEXT	; just treat a space normally
+.f3b6	e4 54		cpx $54			CPX TEMP1	; fill spaces
+.f3b8	f0 f7		beq $f3b1		BEQ _RET
+.f3ba	a9 20		lda #$20		LDA #SP
+.f3bc	95 00		sta $00,x		STA IOBUF,X
+.f3be	20 ef ff	jsr $ffef		JSR OUTCH
+.f3c1	e8		inx		_CONT	INX
+.f3c2	d0 ee		bne $f3b2		BNE _FILL	; always branches
+.f3c4					INSSPC
+.f3c4	b5 ff		lda $ff,x		LDA <(IOBUF-1),X	; was previous character a space?
+.f3c6	c9 20		cmp #$20		CMP #SP
+.f3c8	f0 07		beq $f3d1		BEQ _JUMP
+.f3ca	20 8d f2	jsr $f28d	_GET	JSR NEXTCH	; handles BS, CR and ESC
+.f3cd	c9 20		cmp #$20		CMP #SP
+.f3cf	d0 f9		bne $f3ca		BNE _GET	; only let SP through
+.f3d1	95 00		sta $00,x	_JUMP	STA IOBUF,X	; insert the space
+.f3d3	e8		inx			INX
+.f3d4	4c ef ff	jmp $ffef		JMP OUTCH
+.f3d7					TKNISE
+.f3d7	a0 00		ldy #$00		LDY #$00
+.f3d9	b1 50		lda ($50),y	_NEXT	LDA (MISCL),Y
+.f3db	f0 0b		beq $f3e8		BEQ _EOF
+.f3dd	c5 55		cmp $55			CMP TEMP2
+.f3df	f0 07		beq $f3e8		BEQ _EOF	; null terminator
+.f3e1	95 00		sta $00,x		STA IOBUF,X
+.f3e3	e8		inx			INX
+.f3e4	e6 50		inc $50			INC MISCL
+.f3e6	d0 f1		bne $f3d9		BNE _NEXT
+.f3e8	a5 54		lda $54		_EOF	LDA TEMP1
+.f3ea	95 00		sta $00,x		STA IOBUF,X
+.f3ec	e8		inx			INX
+.f3ed	60		rts			RTS
+.f3ee					DETKN
+.f3ee	20 cc f0	jsr $f0cc		JSR FILLSP
+.f3f1	a0 00		ldy #$00		LDY #$00
+.f3f3	a2 04		ldx #$04		LDX #LABEL
+.f3f5	b1 fc		lda ($fc),y	_LBL	LDA (CURLNL),Y
+.f3f7	f0 4d		beq $f446		BEQ _EOP	; indicates end of program
+.f3f9	c9 02		cmp #$02		CMP #BLANK
+.f3fb	d0 05		bne $f402		BNE _SKIP
+.f3fd	c8		iny			INY
+.f3fe	a9 00		lda #$00		LDA #EOL
+.f400	f0 46		beq $f448		BEQ _EOL
+.f402	c9 01		cmp #$01	_SKIP	CMP #EOFLD
+.f404	f0 06		beq $f40c		BEQ _CHK
+.f406	95 00		sta $00,x		STA IOBUF,X
+.f408	e8		inx			INX
+.f409	c8		iny			INY
+.f40a	d0 e9		bne $f3f5		BNE _LBL
+.f40c	a5 04		lda $04		_CHK	LDA LABEL
+.f40e	c9 3b		cmp #$3b		CMP #CMNT
+.f410	d0 04		bne $f416		BNE _NEXT
+.f412	a2 0b		ldx #$0b		LDX #MNE
+.f414	d0 2d		bne $f443		BNE _CMNT	; always branches
+.f416	c8		iny		_NEXT	INY
+.f417	b1 fc		lda ($fc),y		LDA (CURLNL),Y	; get mnemonic code
+.f419	aa		tax			TAX
+.f41a	ca		dex			DEX		; correct for offset in tokenise
+.f41b	86 3c		stx $3c			STX CURMNE	; store mnemonic for assembler
+.f41d	e0 38		cpx #$38		CPX #NUMMN
+.f41f	10 09		bpl $f42a		BPL _DIR
+.f421	98		tya			TYA		; save Y
+.f422	48		pha			PHA
+.f423	20 99 fa	jsr $fa99		JSR EXPMNE
+.f426	68		pla			PLA		; restore Y
+.f427	a8		tay			TAY
+.f428	d0 06		bne $f430		BNE _REST
+.f42a	86 0c		stx $0c		_DIR	STX MNE+1
+.f42c	a9 2e		lda #$2e		LDA #DOT
+.f42e	85 0b		sta $0b			STA MNE
+.f430	c8		iny		_REST	INY
+.f431	a2 0f		ldx #$0f		LDX #ARGS	; point to ARGS area
+.f433	b1 fc		lda ($fc),y	_LOOP	LDA (CURLNL),Y
+.f435	f0 11		beq $f448		BEQ _EOL	; indicates end of line
+.f437	c9 01		cmp #$01		CMP #EOFLD
+.f439	d0 05		bne $f440		BNE _CONT
+.f43b	c8		iny			INY
+.f43c	a2 1d		ldx #$1d		LDX #COMM	; point to COMM area
+.f43e	d0 f3		bne $f433		BNE _LOOP
+.f440	95 00		sta $00,x	_CONT	STA IOBUF,X
+.f442	e8		inx			INX
+.f443	c8		iny		_CMNT	INY
+.f444	d0 ed		bne $f433		BNE _LOOP
+.f446	a2 fe		ldx #$fe	_EOP	LDX #PRGEND
+.f448	95 00		sta $00,x	_EOL	STA IOBUF,X
+.f44a	60		rts			RTS
+.f44b					ASSEM
+.f44b	20 94 f4	jsr $f494		JSR INIT	; Set the default values
+.f44e	20 e5 fe	jsr $fee5		JSR CRLF
+.f451	20 f8 f5	jsr $f5f8		JSR MYPRPC
+.f454	20 b8 f4	jsr $f4b8	_NEXT	JSR DO1LN	; line is in the buffer - parse it
+.f457	e8		inx			INX
+.f458	f0 0f		beq $f469		BEQ SHWERR
+.f45a	e0 ff		cpx #$ff		CPX #PRGEND+1	; +1 because of INX above
+.f45c	d0 f6		bne $f454		BNE _NEXT
+.f45e	e6 58		inc $58			INC FRFLAG	; have to resolve them all now - this ensures FRFLAG nonzero
+.f460	20 10 f6	jsr $f610		JSR PATCH	; back patch any remaining forward references
+.f463	e8		inx			INX
+.f464	f0 03		beq $f469		BEQ SHWERR
+.f466	4c f8 f5	jmp $f5f8		JMP MYPRPC	; output finishing module end address
+.f469					SHWERR
+.f469	20 e5 fe	jsr $fee5		JSR CRLF
+.f46c	a2 05		ldx #$05		LDX #ERPRSZ
+.f46e	bd 53 fd	lda $fd53,x	_NEXT	LDA ERRPRE-1,X
+.f471	20 ef ff	jsr $ffef		JSR OUTCH
+.f474	ca		dex			DEX
+.f475	d0 f7		bne $f46e		BNE _NEXT
+.f477	98		tya			TYA
+.f478	18		clc		_SHOW	CLC
+.f479	8a		txa			TXA		; sets A to zero
+.f47a	69 03		adc #$03	_ADD	ADC #EMSGSZ
+.f47c	88		dey			DEY
+.f47d	d0 fb		bne $f47a		BNE _ADD
+.f47f	a8		tay			TAY
+.f480	a2 03		ldx #$03	_SKIP	LDX #EMSGSZ
+.f482	b9 56 fd	lda $fd56,y	_LOOP	LDA ERRMSG-EMSGSZ,Y
+.f485	20 ef ff	jsr $ffef		JSR OUTCH
+.f488	c8		iny			INY
+.f489	ca		dex			DEX
+.f48a	d0 f6		bne $f482		BNE _LOOP
+.f48c	ca		dex			DEX		; sets X = #FAIL
+.f48d	a5 59		lda $59			LDA ERFLAG
+.f48f	d0 26		bne $f4b7		BNE RET1
+.f491	4c 72 f2	jmp $f272		JMP PRNTLN
+.f494					INIT
+.f494	20 78 f0	jsr $f078		JSR TOSTRT	; leaves $00 in A
+.f497	85 58		sta $58			STA FRFLAG
+.f499	85 eb		sta $eb			STA NGSYM
+.f49b	85 e9		sta $e9			STA GSYMTL
+.f49d	85 f5		sta $f5			STA CURPCL	; Initial value of PC for the assembled code
+.f49f	a5 f8		lda $f8			LDA CODEH
+.f4a1	85 f6		sta $f6			STA CURPCH
+.f4a3	20 eb f5	jsr $f5eb		JSR CLRLCL	; set local and FREF table pointers
+.f4a6	86 ea		stx $ea			STX GSYMTH	; global table high byte - in X from CLRLCL
+.f4a8					INITFR
+.f4a8	a9 00		lda #$00		LDA #$00
+.f4aa	85 2b		sta $2b			STA NFREF
+.f4ac	85 29		sta $29			STA FREFTL
+.f4ae	85 46		sta $46			STA PTCHTL
+.f4b0	a4 f9		ldy $f9			LDY TABLEH
+.f4b2	c8		iny			INY
+.f4b3	84 2a		sty $2a			STY FREFTH
+.f4b5	84 47		sty $47			STY PTCHTH
+.f4b7	60		rts		RET1	RTS
+.f4b8					DO1LN
+.f4b8	20 ee f3	jsr $f3ee		JSR DETKN
+.f4bb	e0 fe		cpx #$fe		CPX #PRGEND
+.f4bd	f0 1d		beq $f4dc		BEQ _ENDPR
+.f4bf	e0 04		cpx #$04		CPX #LABEL	; means we are still at the first field => blank line
+.f4c1	f0 18		beq $f4db		BEQ _DONE
+.f4c3	a9 00		lda #$00		LDA #$00
+.f4c5	85 59		sta $59			STA ERFLAG
+.f4c7	85 58		sta $58			STA FRFLAG
+.f4c9	85 5a		sta $5a			STA HADFRF
+.f4cb	20 44 f5	jsr $f544		JSR PARSE
+.f4ce	e0 ff		cpx #$ff		CPX #FAIL
+.f4d0	f0 1d		beq $f4ef		BEQ DORTS
+.f4d2	a0 00		ldy #$00	_CONT	LDY #$00
+.f4d4	b1 fc		lda ($fc),y	_LOOP	LDA (CURLNL),Y
+.f4d6	f0 03		beq $f4db		BEQ _DONE
+.f4d8	c8		iny			INY
+.f4d9	d0 f9		bne $f4d4		BNE _LOOP
+.f4db	c8		iny		_DONE	INY		; one more to skip the null
+.f4dc					_ENDPR
+.f4dc					UPDTCL
+.f4dc	a5 fc		lda $fc			LDA CURLNL
+.f4de	84 44		sty $44			STY SCRTCH
+.f4e0	18		clc			CLC
+.f4e1	65 44		adc $44			ADC SCRTCH	; move the current line pointer forward by 'Y' bytes
+.f4e3	85 fc		sta $fc			STA CURLNL
+.f4e5	90 02		bcc $f4e9		BCC INCLN
+.f4e7	e6 fd		inc $fd			INC CURLNH	; increment the high byte if necessary
+.f4e9					INCLN
+.f4e9	e6 fa		inc $fa			INC LINEL
+.f4eb	d0 02		bne $f4ef		BNE DORTS
+.f4ed	e6 fb		inc $fb			INC LINEH
+.f4ef	60		rts		DORTS	RTS		; global label so can be shared
+.f4f0					MKOBJC
+.f4f0	a4 3c		ldy $3c			LDY CURMNE
+.f4f2	b9 73 fc	lda $fc73,y		LDA BASE,Y	; get base value for current mnemonic
+.f4f5	a6 3d		ldx $3d			LDX CURADM
+.f4f7	18		clc			CLC
+.f4f8	7d ab fc	adc $fcab,x		ADC OFFSET,X	; add in the offset
+.f4fb	e0 0b		cpx #$0b		CPX #ABY	; handle exception
+.f4fd	f0 0e		beq $f50d		BEQ _CHABY
+.f4ff	e0 02		cpx #$02		CPX #IMM
+.f501	d0 11		bne $f514		BNE _CONT
+.f503	c0 28		cpy #$28		CPY #$28	; immediate mode need to adjust a range
+.f505	30 0d		bmi $f514		BMI _CONT
+.f507	c0 30		cpy #$30		CPY #$2F+1
+.f509	b0 09		bcs $f514		BCS _CONT
+.f50b	69 08		adc #$08		ADC #ADJIMM	; carry is clear
+.f50d	c0 35		cpy #$35	_CHABY	CPY #$35
+.f50f	d0 03		bne $f514		BNE _CONT
+.f511	18		clc			CLC
+.f512	69 04		adc #$04		ADC #ADJABY
+.f514	20 2f f5	jsr $f52f	_CONT	JSR DOBYTE	; we have the object code
+.f517	c9 00		cmp #$00		CMP #$00
+.f519	d0 03		bne $f51e		BNE _MKARG
+.f51b	20 2f f5	jsr $f52f		JSR DOBYTE
+.f51e					_MKARG
+.f51e	8a		txa			TXA		; quick check for X=0
+.f51f	f0 ce		beq $f4ef		BEQ DORTS	; IMP - no args
+.f521	ca		dex			DEX
+.f522	f0 cb		beq $f4ef		BEQ DORTS	; ACC - no args
+.f524	a5 3e		lda $3e			LDA LVALL	; needed for _BYT handling
+.f526	e0 08		cpx #$08		CPX #ABS-1
+.f528	30 05		bmi $f52f		BMI DOBYTE	; X < #ABS
+.f52a	20 2f f5	jsr $f52f	DOWORD	JSR DOBYTE
+.f52d	a5 3f		lda $3f			LDA LVALH
+.f52f	a0 00		ldy #$00	DOBYTE	LDY #$00
+.f531	91 f5		sta ($f5),y		STA (CURPCL),Y
+.f533					INCPC
+.f533	e6 f5		inc $f5			INC CURPCL
+.f535	d0 02		bne $f539		BNE _DONE	; any carry?
+.f537	e6 f6		inc $f6			INC CURPCH	; yes
+.f539	60		rts		_DONE	RTS
+.f53a					CALCAM
+.f53a	20 a9 f6	jsr $f6a9		JSR ADDMOD
+.f53d	e0 ff		cpx #$ff		CPX #FAIL
+.f53f	d0 af		bne $f4f0		BNE MKOBJC
+.f541	a0 02		ldy #$02		LDY #ILLADM	; Illegal address mode error
+.f543	60		rts			RTS
+.f544					PARSE
+.f544	a5 04		lda $04			LDA LABEL
+.f546	c9 3b		cmp #$3b		CMP #CMNT
+.f548	f0 a5		beq $f4ef		BEQ DORTS	; ignore comment lines
+.f54a	a6 0b		ldx $0b			LDX MNE		; first need to check for an equate
+.f54c	e0 2e		cpx #$2e		CPX #DOT
+.f54e	d0 0d		bne $f55d		BNE _NOEQU
+.f550	a6 0c		ldx $0c			LDX MNE+1
+.f552	e0 4d		cpx #$4d		CPX #MOD	; Do we have a new module?
+.f554	d0 03		bne $f559		BNE _NOMOD
+.f556	4c b6 f5	jmp $f5b6		JMP DOMOD
+.f559	e0 3d		cpx #$3d	_NOMOD	CPX #EQU
+.f55b	f0 47		beq $f5a4		BEQ DOEQU
+.f55d	c9 20		cmp #$20	_NOEQU	CMP #SP		; Is there a label?
+.f55f	f0 03		beq $f564		BEQ _NOLABL
+.f561	20 df f8	jsr $f8df		JSR PCSYM	; save the symbol value - in this case it is the PC
+.f564	a5 0b		lda $0b		_NOLABL	LDA MNE
+.f566	c9 2e		cmp #$2e		CMP #DOT	; do we have a directive?
+.f568	d0 d0		bne $f53a		BNE CALCAM 	; no
+.f56a					DODIR
+.f56a	a2 00		ldx #$00		LDX #$00	; handle directives (except equate and module)
+.f56c	a5 0c		lda $0c			LDA MNE+1
+.f56e	c9 53		cmp #$53		CMP #STR
+.f570	f0 19		beq $f58b		BEQ DOSTR
+.f572	85 58		sta $58			STA FRFLAG	; Disallows forward references
+.f574	20 7a f7	jsr $f77a		JSR QTEVAL
+.f577	e8		inx			INX
+.f578	f0 0c		beq $f586		BEQ DIRERR
+.f57a	a5 3e		lda $3e			LDA LVALL
+.f57c	a6 0c		ldx $0c			LDX MNE+1
+.f57e	e0 57		cpx #$57		CPX #WORD
+.f580	f0 a8		beq $f52a		BEQ DOWORD
+.f582	a6 3f		ldx $3f			LDX LVALH
+.f584	f0 a9		beq $f52f		BEQ DOBYTE
+.f586	a0 03		ldy #$03	DIRERR	LDY #SYNTAX
+.f588	a2 ff		ldx #$ff		LDX #FAIL
+.f58a	60		rts			RTS
+.f58b	b5 0f		lda $0f,x	DOSTR	LDA ARGS,X
+.f58d	c9 27		cmp #$27		CMP #QUOTE
+.f58f	d0 f5		bne $f586		BNE DIRERR	; String invalid
+.f591	e8		inx		_LOOP	INX
+.f592	b5 0f		lda $0f,x		LDA ARGS,X
+.f594	f0 f0		beq $f586		BEQ DIRERR	; end found before string closed - error
+.f596	c9 27		cmp #$27		CMP #QUOTE
+.f598	f0 09		beq $f5a3		BEQ DIROK
+.f59a	20 2f f5	jsr $f52f		JSR DOBYTE	; just copy over the bytes
+.f59d	e0 0e		cpx #$0e		CPX #ARGSZ	; can't go over the size limit
+.f59f	d0 f0		bne $f591		BNE _LOOP
+.f5a1	f0 e3		beq $f586		BEQ DIRERR	; hit the limit without a closing quote - error
+.f5a3	60		rts		DIROK	RTS
+.f5a4					DOEQU
+.f5a4	85 58		sta $58			STA FRFLAG
+.f5a6	20 c2 f2	jsr $f2c2		JSR CHKALN	; label must be global
+.f5a9	90 db		bcc $f586		BCC DIRERR	; MUST have a label for an equate
+.f5ab	a2 00		ldx #$00		LDX #$00
+.f5ad	20 7a f7	jsr $f77a		JSR QTEVAL	; work out the associated value
+.f5b0	e8		inx			INX
+.f5b1	f0 d3		beq $f586		BEQ DIRERR
+.f5b3	4c e2 f8	jmp $f8e2		JMP STRSYM
+.f5b6					DOMOD
+.f5b6	20 c2 f2	jsr $f2c2		JSR CHKALN	; must have a global label
+.f5b9	90 cb		bcc $f586		BCC DIRERR
+.f5bb	a0 00		ldy #$00		LDY #$00
+.f5bd	a5 0f		lda $0f			LDA ARGS
+.f5bf	f0 14		beq $f5d5		BEQ _STORE
+.f5c1	c9 20		cmp #$20		CMP #SP
+.f5c3	f0 10		beq $f5d5		BEQ _STORE
+.f5c5	20 f6 f5	jsr $f5f6	_SETPC	JSR ATOFR	; output finishing module end address (+1)
+.f5c8	a2 00		ldx #$00		LDX #$00	; set a new value for the PC from the args
+.f5ca	a5 0f		lda $0f			LDA ARGS
+.f5cc	20 5b f9	jsr $f95b		JSR CONVRT
+.f5cf	e8		inx			INX
+.f5d0	f0 b4		beq $f586		BEQ DIRERR
+.f5d2	20 c3 f0	jsr $f0c3		JSR LVTOPC
+.f5d5	20 df f8	jsr $f8df	_STORE	JSR PCSYM
+.f5d8	e0 ff		cpx #$ff		CPX #FAIL
+.f5da	f0 c7		beq $f5a3		BEQ DIROK
+.f5dc	20 10 f6	jsr $f610		JSR PATCH
+.f5df	e0 ff		cpx #$ff		CPX #FAIL
+.f5e1	f0 c0		beq $f5a3		BEQ DIROK
+.f5e3	20 c4 fe	jsr $fec4		JSR SHWMOD
+.f5e6	a9 00		lda #$00		LDA #$00	; reset patch flag
+.f5e8	20 f6 f5	jsr $f5f6		JSR ATOFR	; output new module start address
+.f5eb					CLRLCL
+.f5eb	a2 00		ldx #$00		LDX #$00	; this also clears any errors
+.f5ed	86 ee		stx $ee			STX NLSYM	; to their starting values
+.f5ef	86 ec		stx $ec			STX LSYMTL
+.f5f1	a6 f9		ldx $f9			LDX TABLEH	; and then the high bytes
+.f5f3	86 ed		stx $ed			STX LSYMTH
+.f5f5	60		rts			RTS
+.f5f6	85 58		sta $58		ATOFR	STA FRFLAG
+.f5f8					MYPRPC
+.f5f8	a5 f6		lda $f6			LDA CURPCH
+.f5fa	a6 f5		ldx $f5			LDX CURPCL
+.f5fc	a4 58		ldy $58			LDY FRFLAG	; flag set => print dash and minus 1
+.f5fe	f0 0d		beq $f60d		BEQ _NODEC
+.f600	48		pha			PHA
+.f601	20 b9 fe	jsr $feb9		JSR PRDASH
+.f604	68		pla			PLA
+.f605	e0 00		cpx #$00		CPX #$00
+.f607	d0 03		bne $f60c		BNE _SKIP	; is X zero?
+.f609	38		sec			SEC
+.f60a	e9 01		sbc #$01		SBC #$01
+.f60c	ca		dex		_SKIP	DEX
+.f60d	4c 67 fb	jmp $fb67	_NODEC	JMP PRNTAX
+.f610					PATCH
+.f610	a6 2b		ldx $2b			LDX NFREF
+.f612	f0 72		beq $f686		BEQ _RET	; nothing to do
+.f614	86 59		stx $59			STX ERFLAG	; set flag
+.f616	86 45		stx $45		_STRPC	STX NPTCH
+.f618	a5 f5		lda $f5			LDA CURPCL	; save the PC on the stack
+.f61a	48		pha			PHA
+.f61b	a5 f6		lda $f6			LDA CURPCH
+.f61d	48		pha			PHA
+.f61e	20 a8 f4	jsr $f4a8		JSR INITFR
+.f621	a0 00		ldy #$00	_NEXT	LDY #$00
+.f623	a5 58		lda $58			LDA FRFLAG
+.f625	85 48		sta $48			STA FLGSAV	; so I can restore the FREF flag
+.f627	84 5a		sty $5a			STY HADFRF
+.f629	b1 46		lda ($46),y		LDA (PTCHTL),Y
+.f62b	c9 2e		cmp #$2e		CMP #DOT
+.f62d	d0 02		bne $f631		BNE _LOOP
+.f62f	85 58		sta $58			STA FRFLAG	; nonzero means must resolve local symbols
+.f631	b1 46		lda ($46),y	_LOOP	LDA (PTCHTL),Y	; copy symbol to COMM
+.f633	99 1d 00	sta $001d,y		STA COMM,Y
+.f636	c8		iny			INY
+.f637	c0 06		cpy #$06		CPY #SYMSZ
+.f639	d0 f6		bne $f631		BNE _LOOP
+.f63b	b1 46		lda ($46),y		LDA (PTCHTL),Y	; get the PC for this symbol
+.f63d	85 f5		sta $f5			STA CURPCL
+.f63f	c8		iny			INY
+.f640	b1 46		lda ($46),y		LDA (PTCHTL),Y
+.f642	85 f6		sta $f6			STA CURPCH
+.f644	c8		iny			INY
+.f645	b1 46		lda ($46),y		LDA (PTCHTL),Y
+.f647	85 54		sta $54			STA TEMP1	; save any offset value
+.f649	20 7e f8	jsr $f87e		JSR DOLVAL	; get the symbols true value
+.f64c	e0 ff		cpx #$ff		CPX #FAIL	; value now in LVALL,H or error
+.f64e	f0 47		beq $f697		BEQ _ERR
+.f650	a5 5a		lda $5a			LDA HADFRF	; if we have a persistent FREF
+.f652	f0 04		beq $f658		BEQ _CONT	; need to copy its offset as well
+.f654	a5 54		lda $54			LDA TEMP1
+.f656	91 50		sta ($50),y		STA (MISCL),Y	; falls through to some meaningless patching...
+.f658	20 c3 f7	jsr $f7c3	_CONT	JSR ADD16X
+.f65b	a0 00		ldy #$00		LDY #$00
+.f65d	b1 f5		lda ($f5),y		LDA (CURPCL),Y	; get the opcode
+.f65f	29 1f		and #$1f		AND #$1F	; check for branch opcode - format XXY10000
+.f661	c9 10		cmp #$10		CMP #$10
+.f663	f0 22		beq $f687		BEQ _BRA
+.f665	20 33 f5	jsr $f533		JSR INCPC	; skip the opcode
+.f668	a5 3e		lda $3e		_SKIP	LDA LVALL
+.f66a	20 2a f5	jsr $f52a		JSR DOWORD
+.f66d	18		clc		_MORE	CLC
+.f66e	a5 46		lda $46			LDA PTCHTL	; move to the next symbol
+.f670	69 09		adc #$09		ADC #SYMSZ+3
+.f672	85 46		sta $46			STA PTCHTL
+.f674	90 02		bcc $f678		BCC _DECN
+.f676	e6 47		inc $47			INC PTCHTH
+.f678	a5 48		lda $48		_DECN	LDA FLGSAV
+.f67a	85 58		sta $58			STA FRFLAG
+.f67c	c6 45		dec $45			DEC NPTCH
+.f67e	d0 a1		bne $f621		BNE _NEXT
+.f680	68		pla		_DONE	PLA
+.f681	85 f6		sta $f6			STA CURPCH	; restore the PC from the stack
+.f683	68		pla			PLA
+.f684	85 f5		sta $f5			STA CURPCL
+.f686	60		rts		_RET	RTS
+.f687	20 62 f7	jsr $f762	_BRA	JSR ADDOFF	; BRA instructions have a 1 byte offset argument only
+.f68a	e0 ff		cpx #$ff		CPX #FAIL
+.f68c	f0 09		beq $f697		BEQ _ERR
+.f68e	a0 01		ldy #$01		LDY #$01	; save the offset at PC + 1
+.f690	a5 3e		lda $3e			LDA LVALL
+.f692	91 f5		sta ($f5),y		STA (CURPCL),Y
+.f694	4c 6d f6	jmp $f66d		JMP _MORE
+.f697	a0 00		ldy #$00	_ERR	LDY #$00
+.f699	20 e0 fe	jsr $fee0		JSR OUTSP
+.f69c	b1 46		lda ($46),y	_LOOP2	LDA (PTCHTL),Y	; Show symbol that failed
+.f69e	20 ef ff	jsr $ffef		JSR OUTCH
+.f6a1	c8		iny			INY
+.f6a2	c0 06		cpy #$06		CPY #SYMSZ
+.f6a4	d0 f6		bne $f69c		BNE _LOOP2
+.f6a6	88		dey			DEY		; Since #UNKSYM = #SYMSZ - 1
+.f6a7	d0 d7		bne $f680		BNE _DONE	; always branches
+.f6a9					ADDMOD
+.f6a9	a2 ff		ldx #$ff		LDX #$FF	; default error value for mode
+.f6ab	86 3d		stx $3d			STX CURADM	; save it
+.f6ad	a5 3c		lda $3c			LDA CURMNE
+.f6af	a6 0f		ldx $0f			LDX ARGS	; Start checking the format...
+.f6b1	f0 04		beq $f6b7		BEQ _EOL
+.f6b3	e0 20		cpx #$20		CPX #SP
+.f6b5	d0 0e		bne $f6c5		BNE _NOTSP
+.f6b7	a2 00		ldx #$00	_EOL	LDX #IMP	; implied mode - space
+.f6b9	20 3d f7	jsr $f73d		JSR CHKMOD	; check command is ok with this mode
+.f6bc	e0 ff		cpx #$ff		CPX #FAIL	; not ok
+.f6be	d0 35		bne $f6f5		BNE _RET	; may still be accumulator mode though
+.f6c0	a2 01		ldx #$01		LDX #ACC	; accumulator mode - space
+.f6c2	4c 3d f7	jmp $f73d		JMP CHKMOD	; check command is ok with this mode
+.f6c5	e0 23		cpx #$23	_NOTSP	CPX #IMV	; immediate mode - '#'
+.f6c7	f0 0e		beq $f6d7		BEQ _DOIMM
+.f6c9	a2 03		ldx #$03		LDX #REL
+.f6cb	20 3d f7	jsr $f73d		JSR CHKMOD	; check if command is a branch
+.f6ce	e0 ff		cpx #$ff		CPX #FAIL
+.f6d0	f0 24		beq $f6f6		BEQ _NOTREL
+.f6d2	a5 0f		lda $0f			LDA ARGS
+.f6d4	4c 4f f7	jmp $f74f		JMP DOREL
+.f6d7	c9 2c		cmp #$2c	_DOIMM	CMP #$2C	; check exception first - STA
+.f6d9	f0 71		beq $f74c		BEQ BAD
+.f6db	a2 02		ldx #$02		LDX #IMM
+.f6dd	c9 35		cmp #$35		CMP #$35	; check inclusion first - STX
+.f6df	f0 07		beq $f6e8		BEQ _IMMOK
+.f6e1	20 3d f7	jsr $f73d		JSR CHKMOD	; check command is ok with this mode
+.f6e4	e0 ff		cpx #$ff		CPX #FAIL
+.f6e6	f0 0d		beq $f6f5		BEQ _RET
+.f6e8	86 3d		stx $3d		_IMMOK	STX CURADM	; handle immediate mode
+.f6ea	ca		dex			DEX		; X == IMM == 2
+.f6eb	20 7a f7	jsr $f77a		JSR QTEVAL
+.f6ee	e8		inx			INX
+.f6ef	f0 5b		beq $f74c		BEQ BAD
+.f6f1	a5 3f		lda $3f			LDA LVALH
+.f6f3	d0 57		bne $f74c		BNE BAD
+.f6f5	60		rts		_RET	RTS
+.f6f6	a2 00		ldx #$00	_NOTREL LDX #0		; check the more complicated modes
+.f6f8	a5 0f		lda $0f			LDA ARGS
+.f6fa	c9 28		cmp #$28		CMP #OPEN	; indirection?
+.f6fc	d0 01		bne $f6ff		BNE _CONT	; no
+.f6fe	e8		inx			INX		; skip the '('
+.f6ff	20 d3 f7	jsr $f7d3	_CONT	JSR EVAL
+.f702	e0 ff		cpx #$ff		CPX #FAIL
+.f704	f0 ef		beq $f6f5		BEQ _RET
+.f706	20 9c f9	jsr $f99c		JSR FMT2AM	; calculate the addressing mode from the format
+.f709	e0 ff		cpx #$ff		CPX #FAIL
+.f70b	f0 e8		beq $f6f5		BEQ _RET
+.f70d	86 3d		stx $3d			STX CURADM
+.f70f					CHKEXS
+.f70f	e0 06		cpx #$06		CPX #ZPY	; for MNE indices 28 to 2F, ZPY is illegal
+.f711	d0 0e		bne $f721		BNE _CONT	; but ABY is ok, so promote byte argument to word
+.f713	a5 3c		lda $3c			LDA CURMNE
+.f715	c9 28		cmp #$28		CMP #$28
+.f717	90 08		bcc $f721		BCC _CONT
+.f719	c9 30		cmp #$30		CMP #$2F+1
+.f71b	b0 04		bcs $f721		BCS _CONT
+.f71d	a2 0b		ldx #$0b		LDX #ABY	; updated addressing mode
+.f71f	d0 28		bne $f749		BNE OK
+.f721	a0 06		ldy #$06	_CONT	LDY #SPCNT	; check special includes
+.f723	b9 15 fd	lda $fd15,y	_LOOP	LDA SPINC1-1,Y	; load mnemonic code
+.f726	c5 3c		cmp $3c			CMP CURMNE
+.f728	d0 0e		bne $f738		BNE _NEXT
+.f72a	be 1b fd	ldx $fd1b,y		LDX SPINC2-1,Y	; load addressing mode
+.f72d	e4 3d		cpx $3d			CPX CURADM
+.f72f	f0 18		beq $f749		BEQ OK		; match - so ok
+.f731	be 21 fd	ldx $fd21,y		LDX SPINC3-1,Y	; load addressing mode
+.f734	e4 3d		cpx $3d			CPX CURADM
+.f736	f0 11		beq $f749		BEQ OK		; match - so ok
+.f738	88		dey		_NEXT	DEY
+.f739	d0 e8		bne $f723		BNE _LOOP
+.f73b	a6 3d		ldx $3d			LDX CURADM
+.f73d	a5 3c		lda $3c		CHKMOD	LDA CURMNE	; always > 0
+.f73f	dd 59 fc	cmp $fc59,x		CMP MIN,X	; mode index in X
+.f742	90 08		bcc $f74c		BCC BAD		; mnemonic < MIN
+.f744	dd 66 fc	cmp $fc66,x		CMP MAX,X	; MAX,X holds actually MAX + 1
+.f747	b0 03		bcs $f74c		BCS BAD		; mnemonic > MAX
+.f749	86 3d		stx $3d		OK	STX CURADM	; save mode
+.f74b	60		rts			RTS
+.f74c	a2 ff		ldx #$ff	BAD	LDX #FAIL	; Illegal addressing mode error
+.f74e	60		rts			RTS
+.f74f					DOREL
+.f74f	a2 00		ldx #$00		LDX #$00
+.f751	86 3e		stx $3e			STX LVALL
+.f753	86 3f		stx $3f			STX LVALH
+.f755	c9 2a		cmp #$2a		CMP #PC		; PC relative mode - '*'
+.f757	d0 06		bne $f75f		BNE DOLBL
+.f759	20 ba f0	jsr $f0ba		JSR PCTOLV
+.f75c	20 fd f7	jsr $f7fd		JSR XCONT
+.f75f	20 d3 f7	jsr $f7d3	DOLBL	JSR EVAL	; we have a label
+.f762	38		sec		ADDOFF	SEC		; calculate relative offset as LVALL,H - PC
+.f763	a5 3e		lda $3e			LDA LVALL
+.f765	e5 f5		sbc $f5			SBC CURPCL
+.f767	85 3e		sta $3e			STA LVALL
+.f769	a5 3f		lda $3f			LDA LVALH
+.f76b	e5 f6		sbc $f6			SBC CURPCH
+.f76d	85 3f		sta $3f			STA LVALH
+.f76f	f0 04		beq $f775		BEQ DECLV	; error if high byte nonzero
+.f771	e6 3f		inc $3f			INC LVALH
+.f773	d0 d7		bne $f74c		BNE BAD		; need either $00 or $FF
+.f775	c6 3e		dec $3e		DECLV	DEC LVALL
+.f777	c6 3e		dec $3e			DEC LVALL
+.f779	60		rts		RELOK	RTS		; need to end up with offset value in LVALL
+.f77a					QTEVAL
+.f77a	b5 0f		lda $0f,x		LDA ARGS,X
+.f77c	f0 ce		beq $f74c		BEQ BAD
+.f77e	c9 27		cmp #$27		CMP #QUOTE
+.f780	f0 03		beq $f785		BEQ QCHAR
+.f782	4c d3 f7	jmp $f7d3		JMP EVAL
+.f785	e8		inx		QCHAR	INX
+.f786	a9 00		lda #$00		LDA #$0
+.f788	85 3f		sta $3f			STA LVALH	; quoted char must be a single byte
+.f78a	b5 0f		lda $0f,x		LDA ARGS,X	; get the character
+.f78c	85 3e		sta $3e			STA LVALL
+.f78e	e8		inx			INX		; check and skip the closing quote
+.f78f	b5 0f		lda $0f,x		LDA ARGS,X
+.f791	c9 27		cmp #$27		CMP #QUOTE
+.f793	d0 b7		bne $f74c		BNE BAD
+.f795	e8		inx			INX
+.f796	b5 0f		lda $0f,x		LDA ARGS,X
+.f798	f0 7c		beq $f816		BEQ XDONE
+.f79a	c9 20		cmp #$20		CMP #SP
+.f79c	f0 78		beq $f816		BEQ XDONE
+.f79e					DOPLMN
+.f79e	48		pha			PHA		; save the operator
+.f79f	e8		inx			INX		; move forward
+.f7a0	b5 0f		lda $0f,x		LDA ARGS,X	; first calculate the value of the byte
+.f7a2	20 51 fa	jsr $fa51		JSR BYT2HX
+.f7a5	e0 ff		cpx #$ff		CPX #FAIL
+.f7a7	d0 02		bne $f7ab		BNE _CONT
+.f7a9	68		pla			PLA
+.f7aa	60		rts		_RET	RTS
+.f7ab	85 54		sta $54		_CONT	STA TEMP1	; store the value of the byte in TEMP1
+.f7ad	68		pla			PLA
+.f7ae	c9 2b		cmp #$2b		CMP #PLUS
+.f7b0	f0 09		beq $f7bb		BEQ _NONEG
+.f7b2	a5 54		lda $54			LDA TEMP1
+.f7b4	18		clc			CLC		; for minus, need to negate it
+.f7b5	49 ff		eor #$ff		EOR #$FF
+.f7b7	69 01		adc #$01		ADC #$1
+.f7b9	85 54		sta $54			STA TEMP1
+.f7bb	a5 5a		lda $5a		_NONEG	LDA HADFRF
+.f7bd	f0 04		beq $f7c3		BEQ _SKIP
+.f7bf	a5 54		lda $54			LDA TEMP1	; save the offset for use when patching
+.f7c1	91 50		sta ($50),y		STA (MISCL),Y
+.f7c3					_SKIP
+.f7c3					ADD16X
+.f7c3	a5 54		lda $54			LDA TEMP1	; signed 8 bit number
+.f7c5	10 02		bpl $f7c9		BPL _CONT
+.f7c7	c6 3f		dec $3f			DEC LVALH	; bit 7 was set, so it's a negative
+.f7c9	18		clc		_CONT	CLC
+.f7ca	65 3e		adc $3e			ADC LVALL
+.f7cc	85 3e		sta $3e			STA LVALL	; update the stored number low byte
+.f7ce	90 02		bcc $f7d2		BCC _EXIT
+.f7d0	e6 3f		inc $3f			INC LVALH	; update the stored number high byte
+.f7d2	60		rts		_EXIT	RTS
+.f7d3					EVAL
+.f7d3	86 56		stx $56			STX TEMP3	; store start of the expression
+.f7d5	b5 0f		lda $0f,x		LDA ARGS,X
+.f7d7	c9 3c		cmp #$3c		CMP #LOBYTE
+.f7d9	f0 04		beq $f7df		BEQ _HASOP
+.f7db	c9 3e		cmp #$3e		CMP #HIBYTE
+.f7dd	d0 05		bne $f7e4		BNE _DOLBL
+.f7df	85 58		sta $58		_HASOP	STA FRFLAG	; disables forward references when there
+.f7e1	e8		inx			INX		; is a '<' or a '>' in the expression
+.f7e2	b5 0f		lda $0f,x		LDA ARGS,X
+.f7e4	20 be f2	jsr $f2be	_DOLBL	JSR CHKLBL	; is there a label?
+.f7e7	b0 09		bcs $f7f2		BCS _LBL	; yes - get its value
+.f7e9	20 5b f9	jsr $f95b		JSR CONVRT	; convert the ASCII
+.f7ec	e0 ff		cpx #$ff		CPX #FAIL
+.f7ee	f0 24		beq $f814		BEQ XERR
+.f7f0	d0 0b		bne $f7fd		BNE XCONT
+.f7f2	86 2f		stx $2f		_LBL	STX XSAV	; move X to Y
+.f7f4	20 60 f8	jsr $f860		JSR LB2VAL	; yes - get its value
+.f7f7	e0 ff		cpx #$ff		CPX #FAIL
+.f7f9	f0 1b		beq $f816		BEQ XDONE
+.f7fb	a6 2f		ldx $2f			LDX XSAV
+.f7fd	e8		inx		XCONT	INX		; skip the '$'
+.f7fe	b5 0f		lda $0f,x		LDA ARGS,X	; Value now in LVALL,H for ASCII or LABEL
+.f800	20 be f2	jsr $f2be		JSR CHKLBL
+.f803	b0 f8		bcs $f7fd		BCS XCONT	; Continue until end of label or digits
+.f805	c9 2b		cmp #$2b		CMP #PLUS
+.f807	f0 04		beq $f80d		BEQ _DOOP
+.f809	c9 2d		cmp #$2d		CMP #MINUS
+.f80b	d0 0a		bne $f817		BNE XCHKOP
+.f80d	20 9e f7	jsr $f79e	_DOOP	JSR DOPLMN
+.f810	e0 ff		cpx #$ff		CPX #FAIL
+.f812	d0 e9		bne $f7fd		BNE XCONT
+.f814	a0 03		ldy #$03	XERR	LDY #SYNTAX	; argument syntax error
+.f816	60		rts		XDONE	RTS
+.f817	a0 00		ldy #$00	XCHKOP	LDY #$00
+.f819	a5 58		lda $58			LDA FRFLAG
+.f81b	c9 3c		cmp #$3c		CMP #LOBYTE
+.f81d	f0 08		beq $f827		BEQ _GETLO
+.f81f	c9 3e		cmp #$3e		CMP #HIBYTE
+.f821	d0 06		bne $f829		BNE _STORE
+.f823	a5 3f		lda $3f			LDA LVALH	; move LVALH to LVALL
+.f825	85 3e		sta $3e			STA LVALL
+.f827	84 3f		sty $3f		_GETLO	STY LVALH	; keep LVALL, and zero LVALH
+.f829	b5 0f		lda $0f,x	_STORE	LDA ARGS,X	; copy rest of args to COMM
+.f82b	99 1d 00	sta $001d,y		STA COMM,Y
+.f82e	f0 0a		beq $f83a		BEQ _DOVAL
+.f830	c9 20		cmp #$20		CMP #SP
+.f832	f0 06		beq $f83a		BEQ _DOVAL
+.f834	e8		inx			INX
+.f835	c8		iny			INY
+.f836	e0 0e		cpx #$0e		CPX #ARGSZ
+.f838	d0 ef		bne $f829		BNE _STORE
+.f83a	a9 00		lda #$00	_DOVAL	LDA #$00
+.f83c	99 1d 00	sta $001d,y		STA COMM,Y
+.f83f	a4 56		ldy $56			LDY TEMP3	; get start index
+.f841	a9 24		lda #$24		LDA #HEX	; put the '$" back in so subsequent code
+.f843	99 0f 00	sta $000f,y		STA ARGS,Y	; manages the value properly
+.f846	c8		iny			INY
+.f847	a5 3f		lda $3f			LDA LVALH
+.f849	f0 03		beq $f84e		BEQ _DOLO
+.f84b	20 82 fa	jsr $fa82		JSR HX2ASC
+.f84e	a5 3e		lda $3e		_DOLO	LDA LVALL
+.f850	20 82 fa	jsr $fa82		JSR HX2ASC
+.f853	a2 00		ldx #$00		LDX #$00	; bring back the rest from IOBUF
+.f855	b5 1d		lda $1d,x	_COPY	LDA COMM,X
+.f857	99 0f 00	sta $000f,y		STA ARGS,Y	; store at offset Y from ARGS
+.f85a	f0 ba		beq $f816		BEQ XDONE
+.f85c	e8		inx			INX
+.f85d	c8		iny			INY
+.f85e	d0 f5		bne $f855		BNE _COPY
+.f860					LB2VAL
+.f860	a0 00		ldy #$00		LDY #$00
+.f862	c0 06		cpy #$06	_NEXT	CPY #LBLSZ	; all chars done
+.f864	f0 18		beq $f87e		BEQ DOLVAL
+.f866	20 be f2	jsr $f2be		JSR CHKLBL	; has the label finished early?
+.f869	90 09		bcc $f874		BCC _STOP
+.f86b	99 1d 00	sta $001d,y		STA COMM,Y	; copy because we need exactly 6 chars for the search
+.f86e	e8		inx			INX		; COMM isn't used in parsing, so it
+.f86f	b5 0f		lda $0f,x		LDA ARGS,X	; can be treated as scratch space
+.f871	c8		iny			INY
+.f872	d0 ee		bne $f862		BNE _NEXT
+.f874	a9 20		lda #$20	_STOP	LDA #SP		; label is in COMM - ensure filled with spaces
+.f876	99 1d 00	sta $001d,y	_LOOP	STA COMM,Y	; Y still points to next byte to process
+.f879	c8		iny			INY
+.f87a	c0 06		cpy #$06		CPY #LBLSZ
+.f87c	d0 f8		bne $f876		BNE _LOOP
+.f87e	a9 1d		lda #$1d	DOLVAL	LDA #<COMM	; now get value for the label
+.f880	85 42		sta $42			STA STRL
+.f882	a2 00		ldx #$00		LDX #$00	; select global table (#>COMM)
+.f884	86 43		stx $43			STX STRH
+.f886	a9 06		lda #$06		LDA #SYMSZ
+.f888	85 2e		sta $2e			STA RECSIG
+.f88a	a9 08		lda #$08		LDA #SYMSZ+2
+.f88c	85 2d		sta $2d			STA RECSZ	; size includes additional two bytes for value
+.f88e	a5 1d		lda $1d			LDA COMM
+.f890	c9 2e		cmp #$2e		CMP #DOT
+.f892	f0 11		beq $f8a5		BEQ _LOCAL	; local symbol
+.f894	20 8a f9	jsr $f98a		JSR SYMSCH
+.f897	f0 13		beq $f8ac		BEQ _FREF	; if not there, handle as a forward reference
+.f899	a0 06		ldy #$06	_FOUND	LDY #SYMSZ
+.f89b	b1 40		lda ($40),y		LDA (TBLL),Y	; save value
+.f89d	85 3e		sta $3e			STA LVALL
+.f89f	c8		iny			INY
+.f8a0	b1 40		lda ($40),y		LDA (TBLL),Y
+.f8a2	85 3f		sta $3f			STA LVALH
+.f8a4	60		rts			RTS
+.f8a5					_LOCAL
+.f8a5	a2 03		ldx #$03		LDX #$03	; select local table
+.f8a7	20 8a f9	jsr $f98a		JSR SYMSCH
+.f8aa	d0 ed		bne $f899		BNE _FOUND	; if not there, handle as a forward reference
+.f8ac	a5 58		lda $58		_FREF	LDA FRFLAG	; set when patching
+.f8ae	d0 4f		bne $f8ff		BNE SYMERR	; can't add FREFs when patching
+.f8b0	20 ba f0	jsr $f0ba		JSR PCTOLV	; default value	to PC
+.f8b3	a5 2a		lda $2a			LDA FREFTH	; store it in the table
+.f8b5	85 51		sta $51			STA MISCH
+.f8b7	a5 29		lda $29			LDA FREFTL	; Calculate storage address
+.f8b9	a6 2b		ldx $2b			LDX NFREF
+.f8bb	f0 0a		beq $f8c7		BEQ _CONT	; no symbols to skip
+.f8bd	18		clc		_LOOP	CLC
+.f8be	69 09		adc #$09		ADC #SYMSZ+3	; skip over existing symbols
+.f8c0	90 02		bcc $f8c4		BCC _SKIP
+.f8c2	e6 51		inc $51			INC MISCH	; carry bit set - increase high pointer
+.f8c4	ca		dex		_SKIP	DEX
+.f8c5	d0 f6		bne $f8bd		BNE _LOOP
+.f8c7	85 50		sta $50		_CONT	STA MISCL	; Reqd address is now in MISCL,H
+.f8c9	e6 2b		inc $2b			INC NFREF	; Update FREF count
+.f8cb	a5 2b		lda $2b			LDA NFREF
+.f8cd	c9 55		cmp #$55		CMP #MAXFRF	; Check for table full
+.f8cf	10 32		bpl $f903		BPL OVFERR
+.f8d1	a9 1d		lda #$1d		LDA #COMM
+.f8d3	85 5a		sta $5a			STA HADFRF	; non-zero value tells that FREF was encountered
+.f8d5	85 52		sta $52			STA MISC2L
+.f8d7	20 43 f9	jsr $f943		JSR STORE	; Store the symbol
+.f8da	c8		iny			INY
+.f8db	8a		txa			TXA		; X is zero after STORE
+.f8dc	91 50		sta ($50),y		STA (MISCL),Y
+.f8de	60		rts			RTS		; No error
+.f8df					PCSYM
+.f8df	20 ba f0	jsr $f0ba		JSR PCTOLV
+.f8e2					STRSYM
+.f8e2	a9 04		lda #$04		LDA #LABEL
+.f8e4	85 52		sta $52			STA MISC2L
+.f8e6	85 42		sta $42			STA STRL
+.f8e8	a2 00		ldx #$00		LDX #$00
+.f8ea	86 43		stx $43			STX STRH
+.f8ec	a9 06		lda #$06		LDA #SYMSZ
+.f8ee	85 2e		sta $2e			STA RECSIG
+.f8f0	a5 04		lda $04			LDA LABEL	; Global or local?
+.f8f2	c9 2e		cmp #$2e		CMP #DOT
+.f8f4	d0 02		bne $f8f8		BNE _SRCH	; Starts with a dot, so local
+.f8f6	a2 03		ldx #$03		LDX #$03
+.f8f8	20 8a f9	jsr $f98a	_SRCH	JSR SYMSCH
+.f8fb	f0 0b		beq $f908		BEQ STCONT	; Not there yet, so ok
+.f8fd	68		pla		_ERR	PLA
+.f8fe	68		pla			PLA
+.f8ff	a0 05		ldy #$05	SYMERR	LDY #UNKSYM	; missing symbol error
+.f901	d0 02		bne $f905		BNE SBAD
+.f903	a0 04		ldy #$04	OVFERR	LDY #OVRFLW	; Symbol table overflow	error
+.f905	a2 ff		ldx #$ff	SBAD	LDX #FAIL
+.f907	60		rts			RTS
+.f908					STCONT
+.f908	a6 04		ldx $04			LDX LABEL	; Global or local?
+.f90a	e0 2e		cpx #$2e		CPX #DOT
+.f90c	f0 17		beq $f925		BEQ _LSYM	; Starts with a dot, so local
+.f90e	38		sec			SEC		; Store symbol in global symbol table
+.f90f	a5 e9		lda $e9			LDA GSYMTL	; Make space for next symbol
+.f911	e9 08		sbc #$08		SBC #SYMSZ+2	; skip over existing symbols
+.f913	b0 02		bcs $f917		BCS _CONTG	; Reqd address is now in GSYMTL,H
+.f915	c6 ea		dec $ea		_DWNHI	DEC GSYMTH	; carry bit clear - decrease high pointer
+.f917	85 e9		sta $e9		_CONTG	STA GSYMTL
+.f919	e6 eb		inc $eb			INC NGSYM	; Update Symbol count - overflow on 256 symbols
+.f91b	f0 e6		beq $f903		BEQ OVFERR	; Check for table full
+.f91d	85 50		sta $50			STA MISCL	; put addres into MISCH,L for saving
+.f91f	a5 ea		lda $ea			LDA GSYMTH
+.f921	85 51		sta $51			STA MISCH
+.f923	d0 1e		bne $f943		BNE STORE	; Always branches - symbol tables cannot be on page zero
+.f925	a5 ed		lda $ed		_LSYM	LDA LSYMTH	; Store symbol in local symbol table
+.f927	85 51		sta $51			STA MISCH
+.f929	a5 ec		lda $ec			LDA LSYMTL	; Calculate storage address
+.f92b	a6 ee		ldx $ee			LDX NLSYM
+.f92d	f0 0a		beq $f939		BEQ _CONTL	; no symbols to skip
+.f92f	18		clc		_LOOP	CLC
+.f930	69 08		adc #$08		ADC #SYMSZ+2	; skip over existing symbols
+.f932	90 02		bcc $f936		BCC _SKIP
+.f934	e6 51		inc $51			INC MISCH
+.f936	ca		dex		_SKIP	DEX
+.f937	d0 f6		bne $f92f		BNE _LOOP
+.f939	85 50		sta $50		_CONTL	STA MISCL	; Reqd address is now in MISCL,H
+.f93b	e6 ee		inc $ee			INC NLSYM	; Update Symbol count
+.f93d	a5 ee		lda $ee			LDA NLSYM
+.f93f	c9 20		cmp #$20		CMP #MAXSYM	; Check for table full
+.f941	10 c0		bpl $f903		BPL OVFERR
+.f943	a0 00		ldy #$00	STORE	LDY #0		; First store the symbol string
+.f945	84 53		sty $53			STY MISC2H
+.f947	a2 06		ldx #$06	   	LDX #SYMSZ
+.f949	b1 52		lda ($52),y	_MV     LDA (MISC2L),Y 	; move bytes
+.f94b	91 50		sta ($50),y		STA (MISCL),Y
+.f94d	c8		iny			INY
+.f94e	ca		dex			DEX
+.f94f	d0 f8		bne $f949		BNE _MV
+.f951	a5 3e		lda $3e			LDA LVALL	; Now store the value WORD
+.f953	91 50		sta ($50),y		STA (MISCL),Y
+.f955	c8		iny			INY
+.f956	a5 3f		lda $3f			LDA LVALH
+.f958	91 50		sta ($50),y		STA (MISCL),Y
+.f95a	60		rts			RTS		; No error
+.f95b					CONVRT
+.f95b	c9 24		cmp #$24		CMP #HEX	; syntax for hex constant
+.f95d	d0 a6		bne $f905		BNE SBAD	; syntax error
+.f95f	84 1e		sty $1e			STY COMM+1
+.f961	20 18 fa	jsr $fa18		JSR NBYTS
+.f964	e0 ff		cpx #$ff		CPX #FAIL
+.f966	f0 9d		beq $f905		BEQ SBAD
+.f968	85 1d		sta $1d			STA COMM
+.f96a	a0 00		ldy #$00		LDY #$00
+.f96c	84 3f		sty $3f			STY LVALH
+.f96e	ca		dex		_BACK	DEX
+.f96f	ca		dex			DEX
+.f970	b5 0f		lda $0f,x		LDA ARGS,X
+.f972	c9 24		cmp #$24		CMP #HEX
+.f974	f0 06		beq $f97c		BEQ _1DIG
+.f976	20 51 fa	jsr $fa51		JSR BYT2HX
+.f979	38		sec			SEC
+.f97a	b0 03		bcs $f97f		BCS _SKIP
+.f97c	20 6d fa	jsr $fa6d	_1DIG	JSR AHARGS1	; one digit
+.f97f	99 3e 00	sta $003e,y	_SKIP	STA LVALL,Y
+.f982	c8		iny			INY
+.f983	c4 1d		cpy $1d			CPY COMM
+.f985	d0 e7		bne $f96e		BNE _BACK
+.f987	a4 1e		ldy $1e		_RET	LDY COMM+1
+.f989	60		rts			RTS
+.f98a					SYMSCH
+.f98a	b5 e9		lda $e9,x		LDA GSYMTL,X	; get global symbol value
+.f98c	85 40		sta $40			STA TBLL
+.f98e	b5 ea		lda $ea,x		LDA GSYMTH,X
+.f990	85 41		sta $41			STA TBLH
+.f992	b5 eb		lda $eb,x		LDA NGSYM,X	; Number of global symbols
+.f994	85 2c		sta $2c			STA RECNM
+.f996	20 2c fa	jsr $fa2c		JSR SEARCH
+.f999	e0 ff		cpx #$ff		CPX #FAIL	; Z set if search failed
+.f99b	60		rts			RTS		; caller to check
+.f99c					FMT2AM
+.f99c	a2 00		ldx #$00		LDX #$00
+.f99e	a9 04		lda #$04		LDA #$04	; start with mode index of 4
+.f9a0	b4 0f		ldy $0f,x		LDY ARGS,X
+.f9a2	c0 28		cpy #$28		CPY #OPEN
+.f9a4	d0 04		bne $f9aa		BNE _SKIP
+.f9a6	18		clc			CLC		; add 3 for indirect modes
+.f9a7	69 03		adc #$03		ADC #$03
+.f9a9	e8		inx			INX
+.f9aa	48		pha		_SKIP	PHA
+.f9ab	20 18 fa	jsr $fa18		JSR NBYTS	; count bytes (1 or 2 only)
+.f9ae	a8		tay			TAY		; byte count in Y
+.f9af	ca		dex			DEX
+.f9b0	a5 3c		lda $3c			LDA CURMNE
+.f9b2	c9 21		cmp #$21		CMP #$21	; is it JSR?
+.f9b4	f0 04		beq $f9ba		BEQ _JSR
+.f9b6	c9 23		cmp #$23		CMP #$23	; is it JMP?
+.f9b8	d0 01		bne $f9bb		BNE _NOJMP
+.f9ba					_JSR
+.f9ba	c8		iny			INY		; following code treats Y = 3 the same as Y = 2
+.f9bb	68		pla		_NOJMP	PLA		; mode base back in A
+.f9bc	e8		inx			INX		; check for NBYTS failure
+.f9bd	f0 56		beq $fa15		BEQ FERR
+.f9bf	88		dey			DEY
+.f9c0	f0 03		beq $f9c5		BEQ _1BYT
+.f9c2	18		clc		_2BYT	CLC
+.f9c3	69 06		adc #$06		ADC #$06	; add 6 to base index for 2 byte modes
+.f9c5	a8		tay		_1BYT	TAY		; mode index now in Y
+.f9c6	b5 0f		lda $0f,x	_CHECK	LDA ARGS,X
+.f9c8	f0 04		beq $f9ce		BEQ _DONE
+.f9ca	c9 20		cmp #$20		CMP #SP
+.f9cc	d0 14		bne $f9e2		BNE _CONT
+.f9ce	a5 0f		lda $0f		_DONE	LDA ARGS
+.f9d0	c9 28		cmp #$28		CMP #OPEN	; brackets must match
+.f9d2	f0 41		beq $fa15		BEQ FERR
+.f9d4	c0 0f		cpy #$0f	_RET	CPY #$0F
+.f9d6	10 3d		bpl $fa15		BPL FERR	; no indirect absolute Y mode
+.f9d8	c0 07		cpy #$07		CPY #$07
+.f9da	f0 39		beq $fa15		BEQ FERR	; no indirect zero page mode
+.f9dc	30 01		bmi $f9df		BMI _1		; 6502 has no INZ mode, so reduce
+.f9de	88		dey			DEY		; so reduce by ifgreater than 7
+.f9df	98		tya		_1	TYA
+.f9e0	aa		tax			TAX
+.f9e1	60		rts			RTS
+.f9e2	c9 29		cmp #$29	_CONT	CMP #CLOSE
+.f9e4	d0 0b		bne $f9f1		BNE _MORE
+.f9e6	a9 20		lda #$20		LDA #SP
+.f9e8	85 0f		sta $0f			STA ARGS	; erase brackets now they have
+.f9ea	e8		inx			INX
+.f9eb	b5 0f		lda $0f,x		LDA ARGS,X
+.f9ed	c9 2c		cmp #$2c		CMP #COMMA
+.f9ef	d0 d5		bne $f9c6		BNE _CHECK
+.f9f1	b5 0f		lda $0f,x	_MORE	LDA ARGS,X
+.f9f3	c9 2c		cmp #$2c		CMP #COMMA
+.f9f5	d0 1e		bne $fa15		BNE FERR
+.f9f7	e8		inx			INX
+.f9f8	b5 0f		lda $0f,x		LDA ARGS,X
+.f9fa	c9 58		cmp #$58		CMP #'X'
+.f9fc	f0 0d		beq $fa0b		BEQ _ISX
+.f9fe	c9 59		cmp #$59	_ISY	CMP #'Y'
+.fa00	d0 13		bne $fa15		BNE FERR
+.fa02	a5 0f		lda $0f			LDA ARGS
+.fa04	c9 28		cmp #$28		CMP #OPEN
+.fa06	f0 0d		beq $fa15		BEQ FERR
+.fa08	95 0d		sta $0d,x		STA ARGS-2,X	; to avoid ,X check below
+.fa0a	c8		iny			INY
+.fa0b	c8		iny		_ISX	INY
+.fa0c	b5 0d		lda $0d,x		LDA ARGS-2,X
+.fa0e	c9 29		cmp #$29		CMP #CLOSE
+.fa10	f0 03		beq $fa15		BEQ FERR
+.fa12	e8		inx			INX
+.fa13	d0 b1		bne $f9c6		BNE _CHECK	; always
+.fa15	a2 ff		ldx #$ff	FERR	LDX #FAIL	; error message generated upstream
+.fa17	60		rts		FRET	RTS
+.fa18	a0 00		ldy #$00	NBYTS	LDY #$00	; count bytes using Y
+.fa1a	e8		inx		_LOOP	INX
+.fa1b	c8		iny			INY
+.fa1c	20 6e fa	jsr $fa6e		JSR AHARGS
+.fa1f	c9 ff		cmp #$ff		CMP #FAIL
+.fa21	d0 f7		bne $fa1a		BNE _LOOP
+.fa23	98		tya		_NEXT	TYA
+.fa24	4a		lsr a			LSR		; divide number by 2
+.fa25	f0 ee		beq $fa15		BEQ FERR	; zero is an error
+.fa27	c9 03		cmp #$03		CMP #$03	; 3 or more is an error
+.fa29	b0 ea		bcs $fa15		BCS FERR
+.fa2b	60		rts		_RET	RTS
+.fa2c					SEARCH
+.fa2c	a5 2c		lda $2c			LDA RECNM
+.fa2e	f0 e5		beq $fa15		BEQ FERR	; empty table
+.fa30	a2 00		ldx #$00		LDX #$00	; Record number
+.fa32	a0 ff		ldy #$ff	_CHK1	LDY #$FF	; Index into entry
+.fa34	c8		iny		_CHMTCH	INY
+.fa35	c4 2e		cpy $2e			CPY RECSIG	; Have we checked all significant chars?
+.fa37	f0 de		beq $fa17		BEQ FRET	; Yes
+.fa39	b1 40		lda ($40),y		LDA (TBLL),Y	; Load the bytes to compare
+.fa3b	d1 42		cmp ($42),y		CMP (STRL),Y
+.fa3d	f0 f5		beq $fa34		BEQ _CHMTCH	; Check next if these match
+.fa3f	e8		inx			INX		; Else move to next record
+.fa40	e4 2c		cpx $2c			CPX RECNM
+.fa42	f0 d1		beq $fa15		BEQ FERR
+.fa44	a5 40		lda $40			LDA TBLL	; Update address
+.fa46	18		clc			CLC
+.fa47	65 2d		adc $2d			ADC RECSZ
+.fa49	85 40		sta $40			STA TBLL
+.fa4b	90 e5		bcc $fa32		BCC _CHK1
+.fa4d	e6 41		inc $41			INC TBLH	; Including high byte if necessary
+.fa4f	b0 e1		bcs $fa32		BCS _CHK1	; will always branch
+.fa51					BYT2HX
+.fa51	20 6e fa	jsr $fa6e		JSR AHARGS
+.fa54	c9 ff		cmp #$ff		CMP #FAIL	; indicates conversion error
+.fa56	f0 bd		beq $fa15		BEQ FERR
+.fa58	48		pha			PHA
+.fa59	20 6d fa	jsr $fa6d		JSR AHARGS1
+.fa5c	ca		dex			DEX
+.fa5d	c9 ff		cmp #$ff		CMP #FAIL
+.fa5f	d0 02		bne $fa63		BNE _CONT
+.fa61	68		pla			PLA		; just ignore 2nd character
+.fa62	60		rts			RTS
+.fa63	85 44		sta $44		_CONT	STA SCRTCH
+.fa65	68		pla			PLA
+.fa66	0a		asl a			ASL		; shift
+.fa67	0a		asl a			ASL
+.fa68	0a		asl a			ASL
+.fa69	0a		asl a			ASL
+.fa6a	65 44		adc $44			ADC SCRTCH
+.fa6c	60		rts			RTS
+.fa6d	e8		inx		AHARGS1	INX		; caller needs to DEX
+.fa6e	b5 0f		lda $0f,x	AHARGS	LDA ARGS,X
+.fa70					ASC2HX
+.fa70	49 30		eor #$30	    	EOR #$30
+.fa72	c9 0a		cmp #$0a		CMP #$0A
+.fa74	90 08		bcc $fa7e		BCC _VALID
+.fa76	69 88		adc #$88		ADC #$88        ; $89 - CLC
+.fa78	c9 fa		cmp #$fa		CMP #$FA
+.fa7a	90 03		bcc $fa7f		BCC _ERR
+.fa7c	29 0f		and #$0f		AND #$0F
+.fa7e	60		rts		_VALID	RTS
+.fa7f	a9 ff		lda #$ff	_ERR	LDA #FAIL	; this value can never be from a single digit,
+.fa81	60		rts			RTS		; so ok to indicate error
+.fa82					HX2ASC
+.fa82	48		pha			PHA 		; 1st byte.
+.fa83	20 d6 fb	jsr $fbd6		JSR LSR4	; slower, but saves a byte and not too crucial
+.fa86	20 8a fa	jsr $fa8a		JSR DO1DIG
+.fa89	68		pla			PLA
+.fa8a	29 0f		and #$0f	DO1DIG	AND #$0F	; Print 1 hex digit
+.fa8c	09 30		ora #$30		ORA #$30
+.fa8e	c9 3a		cmp #$3a		CMP #$3A
+.fa90	90 02		bcc $fa94		BCC _DONE
+.fa92	69 06		adc #$06		ADC #$06
+.fa94	99 0f 00	sta $000f,y	_DONE	STA ARGS,Y
+.fa97	c8		iny			INY
+.fa98	60		rts			RTS
+.fa99					EXPMNE
+.fa99	bd e9 fb	lda $fbe9,x		LDA LMNETB,X
+.fa9c	85 56		sta $56			STA LMNE
+.fa9e	bd 21 fc	lda $fc21,x		LDA RMNETB,X
+.faa1	85 57		sta $57			STA RMNE
+.faa3	a2 00		ldx #$00		LDX #$00
+.faa5	a9 00		lda #$00	_NEXT	LDA #$00
+.faa7	a0 05		ldy #$05		LDY #$05
+.faa9	06 57		asl $57		_LOOP	ASL RMNE
+.faab	26 56		rol $56			ROL LMNE
+.faad	2a		rol a			ROL
+.faae	88		dey			DEY
+.faaf	d0 f8		bne $faa9		BNE _LOOP
+.fab1	69 40		adc #$40		ADC #'A'-1
+.fab3	95 0b		sta $0b,x		STA MNE,X
+.fab5	a4 5b		ldy $5b			LDY PRFLAG
+.fab7	f0 03		beq $fabc		BEQ _SKIP
+.fab9	20 ef ff	jsr $ffef		JSR OUTCH	; print the mnemonic as well
+.fabc	e8		inx		_SKIP	INX
+.fabd	e0 03		cpx #$03		CPX #$03
+.fabf	d0 e4		bne $faa5		BNE _NEXT
+.fac1	60		rts			RTS
+.fac2					DISASM
+.fac2	20 ab f0	jsr $f0ab		JSR ADDARG
+.fac5	f0 03		beq $faca		BEQ DSMBL
+.fac7	20 c3 f0	jsr $f0c3	_COPY	JSR LVTOPC
+.faca					DSMBL
+.faca	20 dc fa	jsr $fadc	_DSMBL2	JSR INSTDSP	; Disassemble and display instr.
+.facd	20 81 fb	jsr $fb81		JSR PCADJ
+.fad0	85 f5		sta $f5			STA PCL		; Update PCL,H to next instr.
+.fad2	84 f6		sty $f6			STY PCH
+.fad4	ad 11 d0	lda $d011		LDA KBDRDY	; Now disassemble until key press
+.fad7	10 f1		bpl $faca		BPL _DSMBL2
+.fad9	ad 10 d0	lda $d010		LDA KBD
+.fadc	20 6e fb	jsr $fb6e	INSTDSP	JSR PRPC	; Print PCL,H
+.fadf	a1 f5		lda ($f5,x)		LDA (PCL,X)	; Get op code
+.fae1	a8		tay			TAY
+.fae2	4a		lsr a			LSR   		; * Even/odd test
+.fae3	90 09		bcc $faee		BCC _IEVEN
+.fae5	6a		ror a			ROR  		; * Test B1
+.fae6	b0 14		bcs $fafc		BCS _ERR	; XXXXXX11 instr invalid
+.fae8	c9 a2		cmp #$a2		CMP #$A2
+.faea	f0 10		beq $fafc		BEQ _ERR	; 10001001 instr invalid
+.faec	29 87		and #$87		AND #$87	; Mask 3 bits for address mode
+.faee	4a		lsr a		_IEVEN	LSR   		; * LSB into carry for
+.faef	aa		tax			TAX   		; Left/right test below
+.faf0	bd b8 fc	lda $fcb8,x		LDA MODE,X	; Index into address mode table
+.faf3	90 03		bcc $faf8		BCC _RTMODE	; If carry set use LSD for
+.faf5	20 d6 fb	jsr $fbd6		JSR LSR4
+.faf8	29 0f		and #$0f	_RTMODE	AND #$0F	; Mask for 4-bit index
+.fafa	d0 04		bne $fb00		BNE _GETFMT	; $0 for invalid opcodes
+.fafc	a0 80		ldy #$80	_ERR	LDY #$80	; Substitute $80 for invalid op,
+.fafe	a9 00		lda #$00		LDA #$00	; set print format index to 0
+.fb00	aa		tax		_GETFMT	TAX
+.fb01	bd fc fc	lda $fcfc,x		LDA MODE2,X	; Index into print format table
+.fb04	85 29		sta $29			STA FORMAT	; Save for address field format
+.fb06	29 03		and #$03		AND #$03	; Mask 2-bit length.  0=1-byte
+.fb08	85 2a		sta $2a			STA LENGTH	; *  1=2-byte, 2=3 byte
+.fb0a	98		tya			TYA   		; * op code
+.fb0b	20 90 fb	jsr $fb90		JSR GETMNE
+.fb0e	a0 00		ldy #$00		LDY #$00
+.fb10	48		pha			PHA   		; Save mnemonic table index
+.fb11	b1 f5		lda ($f5),y	_PROP	LDA (PCL),Y
+.fb13	20 dc ff	jsr $ffdc		JSR OUTHEX
+.fb16	a2 01		ldx #$01		LDX #$01
+.fb18	20 7a fb	jsr $fb7a	_PROPBL	JSR PRBL2
+.fb1b	c4 2a		cpy $2a			CPY LENGTH	; Print instr (1 to 3 bytes)
+.fb1d	c8		iny			INY   		; *  in a 12-character field
+.fb1e	90 f1		bcc $fb11		BCC _PROP
+.fb20	a2 03		ldx #$03		LDX #$03	; char count for mnemonic print
+.fb22	86 5b		stx $5b			STX PRFLAG	; So EXPMNE prints the mnemonic
+.fb24	c0 04		cpy #$04		CPY #$04
+.fb26	90 f0		bcc $fb18		BCC _PROPBL
+.fb28	68		pla			PLA   		; Recover mnemonic index
+.fb29	aa		tax			TAX
+.fb2a	20 99 fa	jsr $fa99		JSR EXPMNE
+.fb2d	20 78 fb	jsr $fb78		JSR PRBLNK	; Output 3 blanks
+.fb30	a4 2a		ldy $2a			LDY LENGTH
+.fb32	a2 06		ldx #$06		LDX #$06	; Count for 6 print format bits
+.fb34	e0 03		cpx #$03	_PPADR1	CPX #$03
+.fb36	f0 1e		beq $fb56		BEQ _PPADR5	; If X=3 then print address val
+.fb38	06 29		asl $29		_PPADR2	ASL FORMAT	; Test next print format bit
+.fb3a	90 0e		bcc $fb4a		BCC _PPADR3	; If 0 don't print
+.fb3c	bd 09 fd	lda $fd09,x		LDA CHAR1-1,X	; *  corresponding chars
+.fb3f	20 ef ff	jsr $ffef		JSR OUTCH	; Output 1 or 2 chars
+.fb42	bd 0f fd	lda $fd0f,x		LDA CHAR2-1,X	; *  (If char from char2 is 0,
+.fb45	f0 03		beq $fb4a		BEQ _PPADR3	; *   don't output it)
+.fb47	20 ef ff	jsr $ffef		JSR OUTCH
+.fb4a	ca		dex		_PPADR3	DEX
+.fb4b	d0 e7		bne $fb34		BNE _PPADR1
+.fb4d	86 5b		stx $5b			STX PRFLAG	; reset flag to 0
+.fb4f	60		rts			RTS  		; Return if done 6 format bits
+.fb50	88		dey		_PPADR4	DEY
+.fb51	30 e5		bmi $fb38		BMI _PPADR2
+.fb53	20 dc ff	jsr $ffdc		JSR OUTHEX	; Output 1- or 2-byte address
+.fb56	a5 29		lda $29		_PPADR5	LDA FORMAT
+.fb58	c9 e8		cmp #$e8		CMP #$E8	; Handle rel addressing mode
+.fb5a	b1 f5		lda ($f5),y		LDA (PCL),Y	; Special print target adr
+.fb5c	90 f2		bcc $fb50		BCC _PPADR4	; *  (not displacement)
+.fb5e	20 84 fb	jsr $fb84	_RELADR	JSR PCADJ3	; PCL,H + DISPL + 1 to A,Y
+.fb61	aa		tax			TAX
+.fb62	e8		inx			INX
+.fb63	d0 01		bne $fb66		BNE PRNTYX	; *     +1 to X,Y
+.fb65	c8		iny			INY
+.fb66	98		tya		PRNTYX	TYA
+.fb67	20 dc ff	jsr $ffdc	PRNTAX	JSR OUTHEX	; Print target adr of branch
+.fb6a	8a		txa		PRNTX	TXA   		; *  and return
+.fb6b	4c dc ff	jmp $ffdc		JMP OUTHEX
+.fb6e	20 e5 fe	jsr $fee5	PRPC	JSR CRLF	; Output carriage return
+.fb71	a5 f6		lda $f6			LDA PCH
+.fb73	a6 f5		ldx $f5			LDX PCL
+.fb75	20 67 fb	jsr $fb67		JSR PRNTAX	; Output PCL and PCH
+.fb78	a2 03		ldx #$03	PRBLNK	LDX #$03	; Blank count
+.fb7a	20 e0 fe	jsr $fee0	PRBL2	JSR OUTSP	; Output a blank
+.fb7d	ca		dex			DEX
+.fb7e	d0 fa		bne $fb7a		BNE PRBL2	; Loop until count = 0
+.fb80	60		rts			RTS
+.fb81	38		sec		PCADJ	SEC
+.fb82	a5 2a		lda $2a		PCADJ2	LDA LENGTH	; 0=1-byte, 1=2-byte, 2=3-byte
+.fb84	a4 f6		ldy $f6		PCADJ3	LDY PCH
+.fb86	aa		tax			TAX   		; * test displ sign (for rel
+.fb87	10 01		bpl $fb8a		BPL _PCADJ4	; *  branch).  Extend neg
+.fb89	88		dey			DEY   		; *  by decrementing PCH
+.fb8a	65 f5		adc $f5		_PCADJ4	ADC PCL
+.fb8c	90 01		bcc $fb8f		BCC _RTS	; PCL+LENGTH (or displ) + 1 to A
+.fb8e	c8		iny			INY   		; *  carry into Y (PCH)
+.fb8f	60		rts		_RTS	RTS
+.fb90					GETMNE
+.fb90	85 54		sta $54			STA TEMP1	; will need it later
+.fb92	29 8f		and #$8f		AND #$8F
+.fb94	c9 8a		cmp #$8a		CMP #$8A
+.fb96	f0 43		beq $fbdb		BEQ CAT3
+.fb98	0a		asl a			ASL
+.fb99	c9 10		cmp #$10		CMP #$10
+.fb9b	f0 37		beq $fbd4		BEQ CAT2
+.fb9d	a5 54		lda $54			LDA TEMP1	; ? ABCD EFGH - thanks bogax, www.6502.org/forum
+.fb9f	0a		asl a			ASL		; A BCDE FGH0
+.fba0	69 80		adc #$80		ADC #$80	; B ?CDE FGHA
+.fba2	2a		rol a			ROL		; ? CDEF GHAB
+.fba3	0a		asl a			ASL		; C DEFG HAB0
+.fba4	29 1f		and #$1f		AND #$1F	; C 000G HAB0
+.fba6	69 20		adc #$20		ADC #$20	; 0 001G HABC
+.fba8	48		pha			PHA
+.fba9	a5 54		lda $54			LDA TEMP1	; get the opcode back
+.fbab	29 9f		and #$9f		AND #$9F
+.fbad	f0 1b		beq $fbca		BEQ CAT1
+.fbaf	0a		asl a			ASL
+.fbb0	c9 20		cmp #$20		CMP #$20
+.fbb2	f0 10		beq $fbc4		BEQ CAT4
+.fbb4	29 06		and #$06		AND #$06
+.fbb6	d0 2f		bne $fbe7		BNE CAT67
+.fbb8					CAT5
+.fbb8	68		pla			PLA
+.fbb9	29 07		and #$07		AND #$07	; just low 3 bits
+.fbbb	c9 03		cmp #$03		CMP #$03
+.fbbd	10 02		bpl $fbc1		BPL _3
+.fbbf	69 02		adc #$02		ADC #$02	; correction for 21 and 22
+.fbc1	69 1f		adc #$1f	_3	ADC #$1F	; and add 20
+.fbc3	60		rts			RTS
+.fbc4					CAT4
+.fbc4	68		pla			PLA
+.fbc5	29 07		and #$07		AND #$07	; just low 3 bits
+.fbc7	69 18		adc #$18		ADC #$18	; and add 19 (carry is set)
+.fbc9	60		rts			RTS
+.fbca					CAT1
+.fbca	68		pla			PLA
+.fbcb	aa		tax			TAX
+.fbcc	bd b0 fb	lda $fbb0,x		LDA MNEDAT-$20,X
+.fbcf	60		rts			RTS
+>fbd0	16 21 17 18			MNEDAT	.byte $16, $21, $17, $18
+.fbd4					CAT2
+.fbd4	a5 54		lda $54			LDA TEMP1
+.fbd6	4a		lsr a		LSR4	LSR		; need high 4 bits
+.fbd7	4a		lsr a			LSR
+.fbd8	4a		lsr a			LSR
+.fbd9	4a		lsr a			LSR
+.fbda	60		rts			RTS
+.fbdb					CAT3
+.fbdb	20 d4 fb	jsr $fbd4		JSR CAT2	; need high 4 bits
+.fbde	c9 0e		cmp #$0e		CMP #$0E
+.fbe0	d0 02		bne $fbe4		BNE _2
+.fbe2	69 fd		adc #$fd		ADC #$FD
+.fbe4	69 08		adc #$08	_2	ADC #$08	; then add 8
+.fbe6	60		rts			RTS
+.fbe7					CAT67
+.fbe7	68		pla			PLA		; i.e. nnnX XX01 and nnnX XX10 ($28-$2F, $30-$37)
+.fbe8	60		rts			RTS		; it's already done
+.fbe9					MODES
+=$00					IMP = $00
+=$01					ACC = $01
+=$02					IMM = $02		; #$nn or #'<char>' or #LABEL
+=$03					REL = $03		; *+nn or LABEL
+=$04					ZPG = $04		; $nn or LABEL
+=$05					ZPX = $05		; $nn,X or LABEL,X
+=$06					ZPY = $06		; $nn,Y or LABEL,Y
+=$07					IDX = $07		; ($nn,X) or (LABEL,X)
+=$08					IDY = $08		; ($nn),Y or (LABEL),Y
+=$09					ABS = $09		; $nnnn or LABEL
+=$0a					ABX = $0A		; $nnnn,X or LABEL,X
+=$0b					ABY = $0B		; $nnnn or LABEL
+=$0c					IND = $0C		; ($nnnn) or (LABEL)
+=$38					NUMMN 	=$38		; number of mnemonics
+.fbe9					LMNETB
+>fbe9	82					.byte $82	; PHP
+>fbea	1b					.byte $1B	; CLC
+>fbeb	83					.byte $83	; PLP
+>fbec	99					.byte $99	; SEC
+>fbed	82					.byte $82	; PHA
+>fbee	1b					.byte $1B	; CLI
+>fbef	83					.byte $83	; PLA
+>fbf0	99					.byte $99	; SEI
+>fbf1	21					.byte $21	; DEY
+>fbf2	a6					.byte $A6	; TYA
+>fbf3	a0					.byte $A0	; TAY
+>fbf4	1b					.byte $1B	; CLV
+>fbf5	4b					.byte $4B	; INY
+>fbf6	1b					.byte $1B	; CLD
+>fbf7	4b					.byte $4B	; INX
+>fbf8	99					.byte $99	; SED
+>fbf9	a6					.byte $A6	; TXA
+>fbfa	a6					.byte $A6	; TXS
+>fbfb	a0					.byte $A0	; TAX
+>fbfc	a4					.byte $A4	; TSX
+>fbfd	21					.byte $21	; DEX
+>fbfe	73					.byte $73	; NOP
+>fbff	14					.byte $14	; BRK
+>fc00	95					.byte $95	; RTI
+>fc01	95					.byte $95	; RTS
+>fc02	14					.byte $14	; BPL
+>fc03	13					.byte $13	; BMI
+>fc04	15					.byte $15	; BVC
+>fc05	15					.byte $15	; BVS
+>fc06	10					.byte $10	; BCC
+>fc07	10					.byte $10	; BCS
+>fc08	13					.byte $13	; BNE
+>fc09	11					.byte $11	; BEQ
+>fc0a	54					.byte $54	; JSR
+>fc0b	12					.byte $12	; BIT
+>fc0c	53					.byte $53	; JMP
+>fc0d	9d					.byte $9D	; STY
+>fc0e	61					.byte $61	; LDY
+>fc0f	1c					.byte $1C	; CPY
+>fc10	1c					.byte $1C	; CPX
+>fc11	7c					.byte $7C	; ORA
+>fc12	0b					.byte $0B	; AND
+>fc13	2b					.byte $2B	; EOR
+>fc14	09					.byte $09	; ADC
+>fc15	9d					.byte $9D	; STA
+>fc16	61					.byte $61	; LDA
+>fc17	1b					.byte $1B	; CMP
+>fc18	98					.byte $98	; SBC
+>fc19	0c					.byte $0C	; ASL
+>fc1a	93					.byte $93	; ROL
+>fc1b	64					.byte $64	; LSR
+>fc1c	93					.byte $93	; ROR
+>fc1d	9d					.byte $9D	; STX
+>fc1e	61					.byte $61	; LDX
+>fc1f	21					.byte $21	; DEC
+>fc20	4b					.byte $4B	; INC
+.fc21					RMNETB
+>fc21	20					.byte $20	; PHP
+>fc22	06					.byte $06	; CLC
+>fc23	20					.byte $20	; PLP
+>fc24	46					.byte $46	; SEC
+>fc25	02					.byte $02	; PHA
+>fc26	12					.byte $12	; CLI
+>fc27	02					.byte $02	; PLA
+>fc28	52					.byte $52	; SEI
+>fc29	72					.byte $72	; DEY
+>fc2a	42					.byte $42	; TYA
+>fc2b	72					.byte $72	; TAY
+>fc2c	2c					.byte $2C	; CLV
+>fc2d	b2					.byte $B2	; INY
+>fc2e	08					.byte $08	; CLD
+>fc2f	b0					.byte $B0	; INX
+>fc30	48					.byte $48	; SED
+>fc31	02					.byte $02	; TXA
+>fc32	26					.byte $26	; TXS
+>fc33	70					.byte $70	; TAX
+>fc34	f0					.byte $F0	; TSX
+>fc35	70					.byte $70	; DEX
+>fc36	e0					.byte $E0	; NOP
+>fc37	96					.byte $96	; BRK
+>fc38	12					.byte $12	; RTI
+>fc39	26					.byte $26	; RTS
+>fc3a	18					.byte $18	; BPL
+>fc3b	52					.byte $52	; BMI
+>fc3c	86					.byte $86	; BVC
+>fc3d	a6					.byte $A6	; BVS
+>fc3e	c6					.byte $C6	; BCC
+>fc3f	e6					.byte $E6	; BCS
+>fc40	8a					.byte $8A	; BNE
+>fc41	62					.byte $62	; BEQ
+>fc42	e4					.byte $E4	; JSR
+>fc43	68					.byte $68	; BIT
+>fc44	60					.byte $60	; JMP
+>fc45	32					.byte $32	; STY
+>fc46	32					.byte $32	; LDY
+>fc47	32					.byte $32	; CPY
+>fc48	30					.byte $30	; CPX
+>fc49	82					.byte $82	; ORA
+>fc4a	88					.byte $88	; AND
+>fc4b	e4					.byte $E4	; EOR
+>fc4c	06					.byte $06	; ADC
+>fc4d	02					.byte $02	; STA
+>fc4e	02					.byte $02	; LDA
+>fc4f	60					.byte $60	; CMP
+>fc50	86					.byte $86	; SBC
+>fc51	d8					.byte $D8	; ASL
+>fc52	d8					.byte $D8	; ROL
+>fc53	e4					.byte $E4	; LSR
+>fc54	e4					.byte $E4	; ROR
+>fc55	30					.byte $30	; STX
+>fc56	30					.byte $30	; LDX
+>fc57	46					.byte $46	; DEC
+>fc58	86					.byte $86	; INC
+.fc59					MIN
+>fc59	00 30 25 19 24				.byte $00, $30, $25, $19, $24
+>fc5e	28 34 28 28 21 28			.byte $28, $34, $28, $28, $21, $28
+>fc64	28 23					.byte $28, $23
+.fc66					MAX
+>fc66	19 34 30 21 38				.byte $18+1, $33+1, $2F+1, $20+1, $37+1
+>fc6b	34 36 30 30 38 34			.byte $33+1, $35+1, $2F+1, $2F+1, $37+1, $33+1
+>fc71	30 24					.byte $2F+1, $23+1
+.fc73					BASE
+>fc73	08 18 28 38				.byte $08, $18, $28, $38
+>fc77	48 58 68 78				.byte $48, $58, $68, $78
+>fc7b	88 98 a8 b8				.byte $88, $98, $A8, $B8
+>fc7f	c8 d8 e8 f8				.byte $C8, $D8, $E8, $F8
+>fc83	8a 9a aa ba				.byte $8A, $9A, $AA, $BA
+>fc87	ca ea 00 40				.byte $CA, $EA, $00, $40
+>fc8b	60 10 30 50				.byte $60, $10, $30, $50
+>fc8f	70 90 b0 d0				.byte $70, $90, $B0, $D0
+>fc93	f0 14 20 40				.byte $F0, $14, $20, $40
+>fc97	80 a0 c0 e0				.byte $80, $A0, $C0, $E0
+>fc9b	01 21 41 61				.byte $01, $21, $41, $61
+>fc9f	81 a1 c1 e1				.byte $81, $A1, $C1, $E1
+>fca3	02 22 42 62				.byte $02, $22, $42, $62
+>fca7	82 a2 c2 e2				.byte $82, $A2, $C2, $E2
+.fcab					OFFSET
+>fcab	00 08 00 00 04				.byte $00, $08, $00, $00, $04
+>fcb0	14 14 00 10 0c 1c			.byte $14, $14, $00, $10, $0C, $1C
+>fcb6	18 2c					.byte $18, $2C
+=$04					ADJABY  =$04		;
+=$08					ADJIMM  =$08		;
+>fcb8	04 20 54 30 0d			MODE	.byte $04, $20, $54, $30, $0D
+>fcbd	80 04 90 03 22				.byte $80, $04, $90, $03, $22
+>fcc2	54 33 0d 80 04				.byte $54, $33, $0D, $80, $04
+>fcc7	90 04 20 54 33				.byte $90, $04, $20, $54, $33
+>fccc	0d 80 04 90 04				.byte $0D, $80, $04, $90, $04
+>fcd1	20 54 3b 0d 80				.byte $20, $54, $3B, $0D, $80
+>fcd6	04 90 00 22 44				.byte $04, $90, $00, $22, $44
+>fcdb	33 0d c8 44 00				.byte $33, $0D, $C8, $44, $00
+>fce0	11 22 44 33 0d				.byte $11, $22, $44, $33, $0D
+>fce5	c8 44 a9 01 22				.byte $C8, $44, $A9, $01, $22
+>fcea	44 33 0d 80 04				.byte $44, $33, $0D, $80, $04
+>fcef	90 01 22 44 33				.byte $90, $01, $22, $44, $33
+>fcf4	0d 80 04 90				.byte $0D, $80, $04, $90
+>fcf8	26 31 87 9a				.byte $26, $31, $87, $9A
+>fcfc	00				MODE2	.byte $00	; ERR
+>fcfd	21					.byte $21	; IMM
+>fcfe	81					.byte $81	; Z-PAG
+>fcff	82					.byte $82	; ABS
+>fd00	00					.byte $00	; IMPL
+>fd01	00					.byte $00	; ACC
+>fd02	59					.byte $59	; (Z-PAG,X)
+>fd03	4d					.byte $4D	; (Z-PAG),Y
+>fd04	91					.byte $91	; Z-PAG,X
+>fd05	92					.byte $92	; ABS,X
+>fd06	86					.byte $86	; ABS,Y
+>fd07	4a					.byte $4A	; (ABS)
+>fd08	85					.byte $85	; Z-PAG,Y
+>fd09	9d					.byte $9D	; REL
+>fd0a	2c				CHAR1	.byte ','
+>fd0b	29					.byte ')'
+>fd0c	2c					.byte ','
+>fd0d	23					.byte '#'
+>fd0e	28					.byte '('
+>fd0f	24					.byte '$'
+>fd10	59				CHAR2	.byte 'Y'
+>fd11	00					.byte $00
+>fd12	58					.byte 'X'
+>fd13	24					.byte '$'
+>fd14	24					.byte '$'
+>fd15	00					.byte $00
+=$06					SPCNT	= $06		; duplicate some checks so I can use the same loop above
+>fd16	22 24 25 35 36 37		SPINC1	.byte $22, $24, $25, $35, $36, $37
+>fd1c	04 05 05 02 05 05		SPINC2	.byte $04, $05, $05, $02, $05, $05
+>fd22	04 05 0a 0b 0a 0a		SPINC3	.byte $04, $05, $0A, $0B, $0A, $0A
+=$0d					NUMCMD	=$0D
+>fd28	4e 4c 58 45 4d 52 44 49		CMDS	.text "NLXEMRDI!$AVP"
+>fd30	21 24 41 56 50
+=$f0de					N1 = NEW-1
+=$f0e4					L1 = LIST-1
+=$f1c6					D1 = DELETE-1
+=$f14e					E1 = EDIT-1
+=$f104					M1 = MEM-1
+=$f09f					R1 = RUN-1
+=$fac1					DIS1 = DISASM-1
+=$f157					I1 = INSERT-1
+=$ff1a					GL1 = GETLINE-1
+=$ff0e					MON1 = MONTOR-1
+=$f44a					A1 = ASSEM-1
+=$f090					V1 = VALUE-1
+=$f084					P1 = PANIC-1
+>fd35	f0				CMDH	.byte	>N1
+>fd36	f0					.byte	>L1
+>fd37	f1					.byte	>D1
+>fd38	f1					.byte	>E1
+>fd39	f1					.byte	>M1
+>fd3a	f0					.byte	>R1
+>fd3b	fa					.byte	>DIS1
+>fd3c	f1					.byte	>I1
+>fd3d	ff					.byte	>GL1
+>fd3e	ff					.byte	>MON1
+>fd3f	f4					.byte	>A1
+>fd40	f0					.byte	>V1
+>fd41	f0					.byte	>P1
+>fd42	de				CMDL	.byte	<N1
+>fd43	e4					.byte	<L1
+>fd44	c6					.byte	<D1
+>fd45	4e					.byte	<E1
+>fd46	04					.byte	<M1
+>fd47	9f					.byte	<R1
+>fd48	c1					.byte	<DIS1
+>fd49	57					.byte	<I1
+>fd4a	1a					.byte	<GL1
+>fd4b	0e					.byte	<MON1
+>fd4c	4a					.byte	<A1
+>fd4d	90					.byte	<V1
+>fd4e	84					.byte	<P1
+="B"					BYTE 	='B'		; bytes
+="W"					WORD	='W'		; word
+="S"					STR	='S'		; string
+="="					EQU	='='		; equate
+="M"					MOD	='M'		; start address for subsequent module
+=$05					NUMDIR	=$05
+>fd4f	42 57 53 3d 4d			DIRS	.text "BWS=M"
+=$00					UNKERR	=$00
+=$01					INVMNE	=$01		; Invalid mnemonic
+=$02					ILLADM	=$02		; Illegal addressing mode
+=$03					SYNTAX	=$03		; Syntax error
+=$04					OVRFLW	=$04		; Symbol table overflow
+=$05					UNKSYM	=$05		; Unknown or duplicate symbol error
+=$06					MAXERR	=$06
+=$03					EMSGSZ	=$03		; The size of the error message strings
+=$05					ERPRSZ	=$05		; The size of the error prefix string
+>fd54	20 3a 52 52 45			ERRPRE	.text " :RRE"
+.fd59					ERRMSG
+>fd59	4d 4e 45				.text "MNE"
+>fd5c	41 44 44				.text "ADD"
+>fd5f	53 59 4e				.text "SYN"
+>fd62	4f 56 46				.text "OVF"
+>fd65	53 59 4d				.text "SYM"
+=$1b					MSGSZ = $1B
+>fd68	4e 45 53 53 45 57 20 4e		MSG	.text "NESSEW NEK YB 3.1 REDASURK",CR
+>fd70	45 4b 20 59 42 20 33 2e 31 20 52 45 44 41 53 55
+>fd80	52 4b 0d
+=$5					NREGS	=$5
+>fd83	50 53 59 58 41 4c 48		DBGCMD	.text "PSYXALH"
+=7					NDBGCS	=NREGS+2
+>fd8a	43 5a 49 44 42			FLAGS	.text "CZIDB"
+>fd8f	00					.byte $00	; A non-printing character - this flag always on
+>fd90	56 4e					.text "VN"
+.fd92	20 e5 fe	jsr $fee5	GETCMD	JSR CRLF
+.fd95	20 b9 fe	jsr $feb9		JSR PRDASH
+.fd98	20 be fe	jsr $febe		JSR GETCH1
+.fd9b	a0 07		ldy #$07		LDY #NDBGCS
+.fd9d	d9 82 fd	cmp $fd82,y	_LOOP	CMP DBGCMD-1,Y
+.fda0	f0 5c		beq $fdfe		BEQ DOCMD	; if we've found a PC or register change command, then run it
+.fda2	88		dey			DEY
+.fda3	d0 f8		bne $fd9d		BNE _LOOP
+.fda5	c9 52		cmp #$52		CMP #'R'	; resume?
+.fda7	d0 06		bne $fdaf		BNE _NOTR
+.fda9	20 9f fe	jsr $fe9f		JSR RESTORE
+.fdac	6c f5 00	jmp ($00f5)		JMP (PCL)	; Simulate the return so we can more easily manipulate the stack
+.fdaf					_NOTR
+.fdaf	c9 54		cmp #$54		CMP #'T'	; trace?
+.fdb1	d0 3a		bne $fded		BNE NOTT
+.fdb3	a2 08		ldx #$08	TRACE	LDX #$08
+.fdb5	bd 96 fe	lda $fe96,x	XQINIT  LDA INITBL-1,X ;INIT XEQ AREA
+.fdb8	95 e0		sta $e0,x		STA XQT,X
+.fdba	ca		dex			DEX
+.fdbb	d0 f8		bne $fdb5		BNE XQINIT
+.fdbd	a1 f5		lda ($f5,x)		LDA (PCL,X)    ;USER OPCODE BYTE
+.fdbf	f0 5d		beq $fe1e		BEQ XBRK       ;SPECIAL IF BREAK
+.fdc1	a4 2a		ldy $2a			LDY LENGTH     ;LEN FROM DISASSEMBLY
+.fdc3	c9 20		cmp #$20		CMP #$20
+.fdc5	f0 75		beq $fe3c		BEQ XJSR       ;HANDLE JSR, RTS, JMP,
+.fdc7	c9 60		cmp #$60		CMP #$60       ;  JMP (), RTI SPECIAL
+.fdc9	f0 63		beq $fe2e		BEQ XRTS
+.fdcb	c9 4c		cmp #$4c		CMP #$4C
+.fdcd	f0 78		beq $fe47		BEQ XJMP
+.fdcf	c9 6c		cmp #$6c		CMP #$6C
+.fdd1	f0 75		beq $fe48		BEQ XJMPAT
+.fdd3	c9 40		cmp #$40		CMP #$40
+.fdd5	f0 53		beq $fe2a		BEQ XRTI
+.fdd7	29 1f		and #$1f		AND #$1F
+.fdd9	49 14		eor #$14		EOR #$14
+.fddb	c9 04		cmp #$04		CMP #$04       ;COPY USER INST TO XEQ AREA
+.fddd	f0 02		beq $fde1		BEQ _XQ2       ;  WITH TRAILING NOPS
+.fddf	b1 f5		lda ($f5),y	_XQ1    LDA (PCL),Y    ;CHANGE REL BRANCH
+.fde1	99 e0 00	sta $00e0,y	_XQ2    STA XQT,Y      ;  DISP TO 4 FOR
+.fde4	88		dey			DEY            ;  JMP TO BRANCH OR
+.fde5	10 f8		bpl $fddf		BPL _XQ1       ;  NBRANCH FROM XEQ.
+.fde7	20 9f fe	jsr $fe9f		JSR RESTORE    ;RESTORE USER REG CONTENTS.
+.fdea	4c e0 00	jmp $00e0		JMP XQT        ;XEQ USER OP FROM RAM
+.fded					NOTT
+.fded	c9 21		cmp #$21		CMP #'!'	; MONITOR COMMAND
+.fdef	d0 06		bne $fdf7		BNE _MON
+.fdf1	20 1b ff	jsr $ff1b		JSR GETLINE
+.fdf4	4c 1e fe	jmp $fe1e		JMP XBRK
+.fdf7	c9 24		cmp #$24	_MON	CMP #'$'	; monitor?
+.fdf9	d0 97		bne $fd92		BNE GETCMD
+.fdfb	4c 0f ff	jmp $ff0f		JMP MONTOR
+.fdfe	a2 fe		ldx #$fe	DOCMD	LDX #$FE
+.fe00	20 be fe	jsr $febe	_LOOP	JSR GETCH1
+.fe03	95 11		sta $11,x		STA ARGS+2,X
+.fe05	e8		inx			INX
+.fe06	d0 f8		bne $fe00		BNE _LOOP
+.fe08	20 51 fa	jsr $fa51		JSR BYT2HX
+.fe0b	99 ef 00	sta $00ef,y		STA REGS-1,Y
+.fe0e	a6 f1		ldx $f1			LDX SAVS
+.fe10	9a		txs			TXS
+.fe11	4c 1e fe	jmp $fe1e	_1	JMP XBRK
+.fe14	28		plp		DEBUG   PLP
+.fe15	20 aa fe	jsr $feaa		JSR SAVE       ;SAVE REG'S ON BREAK
+.fe18	68		pla			PLA              ;  INCLUDING PC
+.fe19	85 f5		sta $f5			STA PCL
+.fe1b	68		pla			PLA
+.fe1c	85 f6		sta $f6			STA PCH
+.fe1e	ba		tsx		XBRK	TSX
+.fe1f	86 f1		stx $f1			STX SAVS
+.fe21	20 57 fe	jsr $fe57		JSR SHOW
+.fe24	20 dc fa	jsr $fadc		JSR INSTDSP    ;PRINT USER PC.
+.fe27	4c 92 fd	jmp $fd92		JMP GETCMD
+.fe2a	18		clc		XRTI    CLC
+.fe2b	68		pla			PLA              ;SIMULATE RTI BY EXPECTING
+.fe2c	85 f0		sta $f0			STA SAVP     ;  STATUS FROM STACK, THEN RTS
+.fe2e	68		pla		XRTS    PLA              ;RTS SIMULATION
+.fe2f	85 f5		sta $f5			STA PCL        ;  EXTRACT PC FROM STACK
+.fe31	68		pla			PLA              ;  AND UPDATE PC BY 1 (LEN=0)
+.fe32	85 f6		sta $f6		PCINC2  STA PCH
+.fe34	20 82 fb	jsr $fb82	PCINC3  JSR PCADJ2	;UPDATE PC BY LEN
+.fe37	84 f6		sty $f6			STY PCH
+.fe39	18		clc			CLC
+.fe3a	90 14		bcc $fe50		BCC NEWPCL
+.fe3c	18		clc		XJSR    CLC
+.fe3d	20 82 fb	jsr $fb82		JSR PCADJ2     ;UPDATE PC AND PUSH
+.fe40	aa		tax			TAX              ;  ONTO STACK FOR
+.fe41	98		tya			TYA              ;  JSR SIMULATE
+.fe42	48		pha			PHA
+.fe43	8a		txa			TXA
+.fe44	48		pha			PHA
+.fe45	a0 02		ldy #$02		LDY #$02
+.fe47	18		clc		XJMP    CLC
+.fe48	b1 f5		lda ($f5),y	XJMPAT  LDA (PCL),Y
+.fe4a	aa		tax			TAX              ;LOAD PC FOR JMP,
+.fe4b	88		dey			DEY              ;  (JMP) SIMULATE.
+.fe4c	b1 f5		lda ($f5),y		LDA (PCL),Y
+.fe4e	86 f6		stx $f6			STX PCH
+.fe50	85 f5		sta $f5		NEWPCL  STA PCL
+.fe52	b0 f3		bcs $fe47		BCS XJMP
+.fe54	4c 1e fe	jmp $fe1e		JMP XBRK
+.fe57	20 e5 fe	jsr $fee5	SHOW	JSR CRLF
+.fe5a	a2 05		ldx #$05		LDX #NREGS
+.fe5c	bd 82 fd	lda $fd82,x	_LOOP	LDA DBGCMD-1,X
+.fe5f	20 ef ff	jsr $ffef		JSR OUTCH
+.fe62	20 b9 fe	jsr $feb9		JSR PRDASH
+.fe65	b5 ef		lda $ef,x		LDA REGS-1,X
+.fe67	20 dc ff	jsr $ffdc		JSR OUTHEX
+.fe6a	20 e0 fe	jsr $fee0		JSR OUTSP
+.fe6d	ca		dex			DEX
+.fe6e	d0 ec		bne $fe5c		BNE _LOOP
+.fe70	a5 f0		lda $f0			LDA SAVP	; show the flags explicitly as well
+.fe72	a2 08		ldx #$08		LDX #$08
+.fe74	0a		asl a		_NEXT	ASL
+.fe75	90 08		bcc $fe7f		BCC _SKIP
+.fe77	48		pha			PHA
+.fe78	bd 89 fd	lda $fd89,x		LDA FLAGS-1,X
+.fe7b	20 ef ff	jsr $ffef		JSR OUTCH
+.fe7e	68		pla			PLA
+.fe7f	ca		dex		_SKIP	DEX
+.fe80	d0 f2		bne $fe74		BNE _NEXT
+.fe82	60		rts			RTS
+.fe83	18		clc		BRANCH  CLC              ;BRANCH TAKEN,
+.fe84	a0 01		ldy #$01		LDY #$01       ;  ADD LEN+2 TO PC
+.fe86	b1 f5		lda ($f5),y		LDA (PCL),Y
+.fe88	20 84 fb	jsr $fb84		JSR PCADJ3
+.fe8b	85 f5		sta $f5			STA PCL
+.fe8d	98		tya			TYA
+.fe8e	38		sec			SEC
+.fe8f	b0 a1		bcs $fe32		BCS PCINC2
+.fe91	20 aa fe	jsr $feaa	NBRNCH  JSR SAVE       ;NORMAL RETURN AFTER
+.fe94	38		sec			SEC              ;  XEQ USER OF
+.fe95	b0 9d		bcs $fe34		BCS PCINC3     ;GO UPDATE PC
+.fe97	ea		nop		INITBL  NOP
+.fe98	ea		nop			NOP              ;DUMMY FILL FOR
+.fe99	4c 91 fe	jmp $fe91		JMP NBRNCH     ;  XEQ AREA
+.fe9c	4c 83 fe	jmp $fe83		JMP BRANCH
+.fe9f	a5 f0		lda $f0		RESTORE LDA SAVP     ;RESTORE 6502 REG CONTENTS
+.fea1	48		pha			PHA              ;  USED BY DEBUG SOFTWARE
+.fea2	a5 f4		lda $f4			LDA SAVA
+.fea4	a6 f3		ldx $f3			LDX SAVX
+.fea6	a4 f2		ldy $f2			LDY SAVY
+.fea8	28		plp			PLP
+.fea9	60		rts			RTS
+.feaa	85 f4		sta $f4		SAVE    STA SAVA        ;SAVE 6502 REG CONTENTS
+.feac	86 f3		stx $f3			STX SAVX
+.feae	84 f2		sty $f2			STY SAVY
+.feb0	08		php			PHP
+.feb1	68		pla			PLA
+.feb2	85 f0		sta $f0			STA SAVP
+.feb4	ba		tsx			TSX
+.feb5	86 f1		stx $f1			STX SAVS
+.feb7	d8		cld			CLD
+.feb8	60		rts			RTS
+.feb9					PRDASH
+.feb9	a9 2d		lda #$2d		LDA #MINUS
+.febb	4c ef ff	jmp $ffef		JMP OUTCH
+.febe	20 ea fe	jsr $feea	GETCH1	JSR GETCH
+.fec1	4c ef ff	jmp $ffef		JMP OUTCH
+.fec4					SHWMOD
+.fec4	20 e5 fe	jsr $fee5		JSR CRLF
+.fec7	a2 00		ldx #$00		LDX #$00
+.fec9	b5 04		lda $04,x	_LOOP2	LDA LABEL,X
+.fecb	20 ef ff	jsr $ffef		JSR OUTCH
+.fece	e8		inx			INX
+.fecf	e0 06		cpx #$06		CPX #LBLSZ
+.fed1	d0 f6		bne $fec9		BNE _LOOP2
+.fed3	20 e0 fe	jsr $fee0		JSR OUTSP
+.fed6					PRLNNM
+.fed6	a5 fb		lda $fb			LDA LINEH
+.fed8	20 e5 ff	jsr $ffe5		JSR PRHEX
+.fedb	a5 fa		lda $fa			LDA LINEL
+.fedd	20 dc ff	jsr $ffdc		JSR OUTHEX
+.fee0					OUTSP
+.fee0	a9 20		lda #$20		LDA #SP
+.fee2	4c ef ff	jmp $ffef		JMP OUTCH
+.fee5					CRLF
+.fee5	a9 0d		lda #$0d		LDA #CR		; "CR"
+.fee7	4c ef ff	jmp $ffef		JMP OUTCH
+.feea					GETCH
+.feea	ad 11 d0	lda $d011		LDA KBDRDY
+.feed	10 fb		bpl $feea		BPL GETCH
+.feef	ad 10 d0	lda $d010		LDA KBD
+.fef2	29 7f		and #$7f		AND #INMASK
+.fef4	60		rts			RTS
+="_"					BSA1		=     '_';$08		; backspace
+=$24					XAML            =     $24             ;  Last "opened" location Low
+=$25					XAMH            =     $25             ;  Last "opened" location High
+=$26					STL             =     $26             ;  Store address Low
+=$27					STH             =     $27             ;  Store address High
+=$28					L               =     $28             ;  Hex value parsing Low
+=$29					H               =     $29             ;  Hex value parsing High
+=$2a					YSAVM           =     $2A             ;  Used to see if hex value is given
+=$2b					MODEM           =     $2B             ;  $00=XAM, $7F=STOR, $AE=BLOCK XAM
+=$0200					IN              =     $0200           ;  Input buffer to $027F
+=$d012					DSP             =     $D012           ;  PIA.B display output register
+=$d013					DSPCR           =     $D013           ;  PIA.B display control register
+="\"					MONPROMPT          =     '\'             ;  Prompt character
+.ff00	d8		cld		RESET           CLD                   ;  Clear decimal arithmetic mode
+.ff01	58		cli			        CLI
+.ff02	a0 7f		ldy #$7f		        LDY     #$7F	      ;  Mask for DSP data direction reg
+.ff04	8c 12 d0	sty $d012		        STY     DSP           ;   (DDR mode is assumed after reset)
+.ff07	a9 a7		lda #$a7		        LDA     #$A7          ;  KBD and DSP control register mask
+.ff09	8d 11 d0	sta $d011		        STA     KBDRDY        ;  Enable interrupts, set CA1, CB1 for
+.ff0c	8d 13 d0	sta $d013		        STA     DSPCR         ;   positive edge sense/output mode.
+.ff0f	a9 5c		lda #$5c	ESCAPE          LDA     #MONPROMPT       ;  Print prompt character
+.ff11	20 ef ff	jsr $ffef		        JSR     OUTCH         ;  Output it.
+.ff14					GET
+.ff14	20 1b ff	jsr $ff1b			JSR 	GETLINE
+.ff17	90 f6		bcc $ff0f		        BCC 	ESCAPE
+.ff19	b0 f9		bcs $ff14		        BCS 	GET
+.ff1b	20 e5 fe	jsr $fee5	GETLINE         JSR 	CRLF
+.ff1e	a0 01		ldy #$01		        LDY     #0+1          ;  Start a new input line
+.ff20	88		dey		BACKSPACE       DEY                   ;  Backup text index
+.ff21	30 f8		bmi $ff1b		        BMI     GETLINE       ;  Oops, line's empty, reinitialize
+.ff23	20 be fe	jsr $febe	NEXTCHAR        JSR 	GETCH1
+.ff26	99 00 02	sta $0200,y			STA     IN,Y          ;  Add to text buffer
+.ff29	c9 0d		cmp #$0d		        CMP     #CR
+.ff2b	f0 0b		beq $ff38		        BEQ 	_CONT
+.ff2d	c9 5f		cmp #$5f			CMP     #BSA1         ;  Backspace key?
+.ff2f	f0 ef		beq $ff20		        BEQ     BACKSPACE     ;  Yes
+.ff31	c9 1b		cmp #$1b		        CMP     #ESC          ;  ESC?
+.ff33	f0 da		beq $ff0f		        BEQ     ESCAPE        ;  Yes
+.ff35	c8		iny			        INY                   ;  Advance text index
+.ff36	10 eb		bpl $ff23		        BPL     NEXTCHAR      ;  Auto ESC if line longer than 127
+.ff38					_CONT
+.ff38	a0 ff		ldy #$ff		        LDY     #-1           ;  Reset text index
+.ff3a	a9 00		lda #$00		        LDA     #0            ;  Default mode is XAM
+.ff3c	aa		tax			        TAX                   ;  X=0
+.ff3d	0a		asl a		SETSTOR         ASL                   ;  Leaves $7B if setting STOR mode
+.ff3e	85 2b		sta $2b		SETMODE         STA     MODEM         ;  Set mode flags
+.ff40	c8		iny		BLSKIP          INY                   ;  Advance text index
+.ff41	b9 00 02	lda $0200,y	NEXTITEM        LDA     IN,Y          ;  Get character
+.ff44	c9 0d		cmp #$0d		        CMP     #CR
+.ff46	d0 02		bne $ff4a		        BNE 	_CONT
+.ff48	38		sec		     		SEC
+.ff49	60		rts		     		RTS
+.ff4a	09 80		ora #$80	_CONT           ORA 	#$80
+.ff4c	c9 ae		cmp #$ae		        CMP     #'.'+$80
+.ff4e	90 f0		bcc $ff40		        BCC     BLSKIP        ;  Ignore everything below "."!
+.ff50	f0 ec		beq $ff3e		        BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
+.ff52	c9 ba		cmp #$ba		        CMP     #':'+$80
+.ff54	f0 e7		beq $ff3d		        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $7B
+.ff56	c9 d2		cmp #$d2		        CMP     #'R'+$80
+.ff58	f0 3d		beq $ff97		        BEQ     RUNM          ;  Run the program! Forget the rest
+.ff5a	86 28		stx $28			        STX     L             ;  Clear input value (X=0)
+.ff5c	86 29		stx $29			        STX     H
+.ff5e	84 2a		sty $2a			        STY     YSAVM          ;  Save Y for comparison
+.ff60	b9 00 02	lda $0200,y	NEXTHEX         LDA     IN,Y          ;  Get character for hex test
+.ff63	49 30		eor #$30		        EOR     #$30          ;  Map digits to 0-9
+.ff65	c9 0a		cmp #$0a		        CMP     #$0A          ;  Is it a decimal digit?
+.ff67	90 06		bcc $ff6f		        BCC     DIG           ;  Yes!
+.ff69	69 88		adc #$88		        ADC     #$88          ;  Map letter "A"-"F" to $FA-FF
+.ff6b	c9 fa		cmp #$fa		        CMP     #$FA          ;  Hex letter?
+.ff6d	90 11		bcc $ff80		        BCC     NOTHEX        ;  No! Character not hex
+.ff6f	0a		asl a		DIG             ASL
+.ff70	0a		asl a			        ASL                   ;  Hex digit to MSD of A
+.ff71	0a		asl a			        ASL
+.ff72	0a		asl a			        ASL
+.ff73	a2 04		ldx #$04		        LDX     #4            ;  Shift count
+.ff75	0a		asl a		HEXSHIFT        ASL                   ;  Hex digit left, MSB to carry
+.ff76	26 28		rol $28			        ROL     L             ;  Rotate into LSD
+.ff78	26 29		rol $29			        ROL     H             ;  Rotate into MSD's
+.ff7a	ca		dex			        DEX                   ;  Done 4 shifts?
+.ff7b	d0 f8		bne $ff75		        BNE     HEXSHIFT      ;  No, loop
+.ff7d	c8		iny			        INY                   ;  Advance text index
+.ff7e	d0 e0		bne $ff60		        BNE     NEXTHEX       ;  Always taken
+.ff80	c4 2a		cpy $2a		NOTHEX          CPY     YSAVM         ;  Was at least 1 hex digit given?
+.ff82	d0 02		bne $ff86		        BNE 	_CONT
+.ff84	18		clc			        CLC		      ;  No! Ignore all, start from scratch
+.ff85	60		rts			        RTS
+.ff86	24 2b		bit $2b		_CONT		BIT     MODEM         ;  Test MODE byte
+.ff88	50 10		bvc $ff9a		        BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
+.ff8a	a5 28		lda $28			        LDA     L             ;  LSD's of hex data
+.ff8c	81 26		sta ($26,x)		        STA     (STL,X)       ;  Store current 'store index'(X=0)
+.ff8e	e6 26		inc $26			        INC     STL           ;  Increment store index.
+.ff90	d0 af		bne $ff41		        BNE     NEXTITEM      ;  No carry!
+.ff92	e6 27		inc $27			        INC     STH           ;  Add carry to 'store index' high
+.ff94	4c 41 ff	jmp $ff41	TONEXTITEM      JMP     NEXTITEM      ;  Get next command item.
+.ff97	6c 24 00	jmp ($0024)	RUNM            JMP     (XAML)        ;  Run user's program
+.ff9a	30 27		bmi $ffc3	NOTSTOR         BMI     XAMNEXT       ;  B7 = 0 for XAM, 1 for BLOCK XAM
+.ff9c	a2 02		ldx #$02		        LDX     #2            ;  Copy 2 bytes
+.ff9e	b5 27		lda $27,x	SETADR          LDA     L-1,X         ;  Copy hex data to
+.ffa0	95 25		sta $25,x		        STA     STL-1,X       ;   'store index'
+.ffa2	95 23		sta $23,x		        STA     XAML-1,X      ;   and to 'XAM index'
+.ffa4	ca		dex			        DEX                   ;  Next of 2 bytes
+.ffa5	d0 f7		bne $ff9e		        BNE     SETADR        ;  Loop unless X = 0
+.ffa7	d0 12		bne $ffbb	NXTPRNT         BNE     PRDATA        ;  NE means no address to print
+.ffa9	20 e5 fe	jsr $fee5		        JSR 	CRLF
+.ffac	a5 25		lda $25			        LDA     XAMH          ;  Output high-order byte of address
+.ffae	20 dc ff	jsr $ffdc		        JSR     OUTHEX
+.ffb1	a5 24		lda $24			        LDA     XAML          ;  Output low-order byte of address
+.ffb3	20 dc ff	jsr $ffdc		        JSR     OUTHEX
+.ffb6	a9 3a		lda #$3a		        LDA     #':'          ;  Print colon
+.ffb8	20 ef ff	jsr $ffef		        JSR     OUTCH
+.ffbb	20 e0 fe	jsr $fee0	PRDATA          JSR 	OUTSP
+.ffbe	a1 24		lda ($24,x)		        LDA     (XAML,X)      ;  Get data from address (X=0)
+.ffc0	20 dc ff	jsr $ffdc		        JSR     OUTHEX        ;  Output it in hex format
+.ffc3	86 2b		stx $2b		XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).
+.ffc5	a5 24		lda $24			        LDA     XAML          ;  See if there's more to print
+.ffc7	c5 28		cmp $28			        CMP     L
+.ffc9	a5 25		lda $25			        LDA     XAMH
+.ffcb	e5 29		sbc $29			        SBC     H
+.ffcd	b0 c5		bcs $ff94		        BCS     TONEXTITEM    ;  Not less! No more data to output
+.ffcf	e6 24		inc $24			        INC     XAML          ;  Increment 'examine index'
+.ffd1	d0 02		bne $ffd5		        BNE     MOD8CHK       ;  No carry!
+.ffd3	e6 25		inc $25			        INC     XAMH
+.ffd5	a5 24		lda $24		MOD8CHK         LDA     XAML          ;  If address MOD 8 = 0 start new line
+.ffd7	29 07		and #$07		        AND     #$07
+.ffd9	10 cc		bpl $ffa7		        BPL     NXTPRNT       ;  Always taken.
+=$d010					KBD     =$D010		; Apple 1 Keyboard character read.
+=$d011					KBDRDY  =$D011		; Apple 1 Keyboard data waiting when negative.
+.ffdc	48		pha		OUTHEX	PHA 		; Print 1 hex byte.
+.ffdd	4a		lsr a			LSR
+.ffde	4a		lsr a			LSR
+.ffdf	4a		lsr a			LSR
+.ffe0	4a		lsr a			LSR
+.ffe1	20 e5 ff	jsr $ffe5		JSR PRHEX
+.ffe4	68		pla			PLA
+.ffe5	29 0f		and #$0f	PRHEX	AND #$0F	; Print 1 hex digit
+.ffe7	09 30		ora #$30		ORA #$30
+.ffe9	c9 3a		cmp #$3a		CMP #$3A
+.ffeb	90 02		bcc $ffef		BCC OUTCH
+.ffed	69 06		adc #$06		ADC #$06
+.ffef	2c 12 d0	bit $d012	OUTCH	BIT DSP         ;  DA bit (B7) cleared yet?
+.fff2	30 fb		bmi $ffef		BMI OUTCH       ;  No! Wait for display ready
+.fff4	8d 12 d0	sta $d012		STA DSP         ;  Output character. Sets DA
+.fff7	60		rts			RTS
+>fffa	00 0f					.word $0F00
+>fffc	00 ff					.word RESET
+>fffe	14 fe					.word DEBUG
+
+;******  End of listing
