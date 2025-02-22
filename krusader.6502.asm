@@ -2834,6 +2834,7 @@ GETCH   		; Get a character from the keyboard.
 ;  The WOZ Monitor for the Apple 1
 ;  Written by Steve Wozniak 1976
 ;  Minor adjustments by Ken Wessen to support the minimonitor ! command
+;  (i.e., Calling GETLINE as a subroutine)
 ;  Standard entry points are unchanged
 ;
 ;-------------------------------------------------------------------------
@@ -2868,29 +2869,29 @@ RESET           CLD                   ;  Clear decimal arithmetic mode
 	        LDA     #$A7          ;  KBD and DSP control register mask
 	        STA     KBDRDY        ;  Enable interrupts, set CA1, CB1 for
 	        STA     DSPCR         ;   positive edge sense/output mode.
-
-
-ESCAPE          LDA     #MONPROMPT       ;  Print prompt character
+ESCAPE          LDA     #MONPROMPT    ;  Print prompt character
 	        JSR     OUTCH         ;  Output it.
-GET             ;JSR 	CRLF 
-		JSR 	GETLINE
-	        BCC 	ESCAPE
-	        BCS 	GET
-GETLINE         JSR 	CRLF
+MONLOOP	        JSR     GETLINE       ;  Attempt to read and execute one command
+	        BCC     ESCAPE        ;  Error, generate ESC sequence
+	        BCS     MONLOOP       ;  Read next command
+
+GETLINE         JSR     CRLF
 	        LDY     #0+1          ;  Start a new input line
 BACKSPACE       DEY                   ;  Backup text index
 	        BMI     GETLINE       ;  Oops, line's empty, reinitialize
-NEXTCHAR        JSR 	GETCH1
-		STA     IN,Y          ;  Add to text buffer
-	        CMP     #CR
-	        BEQ 	_CONT
-		CMP     #BSA1         ;  Backspace key?
+NEXTCHAR        JSR     GETCH1
+	        STA     IN,Y          ;  Add to text buffer
+	        CMP     #CR           ;  CR?
+	        BEQ     GOTCR         ;  Yes.
+	        CMP     #BSA1         ;  Backspace key?
 	        BEQ     BACKSPACE     ;  Yes
 	        CMP     #ESC          ;  ESC?
-	        BEQ     ESCAPE        ;  Yes
+	        BEQ     RETERR        ;  Yes
 	        INY                   ;  Advance text index
 	        BPL     NEXTCHAR      ;  Auto ESC if line longer than 127
-_CONT				      ;  Line received, now let's parse it
+RETERR	        CLC                   ;  Set C=0, indicating error
+RETURN	        RTS                   ;  Return to caller (above or external)
+GOTCR	                              ;  Line received, now let's parse it
 	        LDY     #-1           ;  Reset text index
 	        LDA     #0            ;  Default mode is XAM
 	        TAX                   ;  X=0
@@ -2898,12 +2899,10 @@ SETSTOR         ASL                   ;  Leaves $7B if setting STOR mode
 SETMODE         STA     MODEM         ;  Set mode flags
 BLSKIP          INY                   ;  Advance text index
 NEXTITEM        LDA     IN,Y          ;  Get character
-	        CMP     #CR
-	        BNE 	_CONT
-     		SEC
-     		RTS           
-_CONT           ORA 	#$80
-	        CMP     #'.'+$80
+	        CMP     #CR           ;  CR? (set C=1 if equal)
+	        BEQ     RETURN        ;  Yes, done this line. Return C=1
+	        ORA     #$80          ;  Set MSB for code below
+	        CMP     #'.'+$80      ;  "."?"
 	        BCC     BLSKIP        ;  Ignore everything below "."!
 	        BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
 	        CMP     #':'+$80
@@ -2932,11 +2931,9 @@ HEXSHIFT        ASL                   ;  Hex digit left, MSB to carry
 	        BNE     HEXSHIFT      ;  No, loop
 	        INY                   ;  Advance text index
 	        BNE     NEXTHEX       ;  Always taken
-NOTHEX          CPY     YSAVM         ;  Was at least 1 hex digit given?
-	        BNE 	_CONT
-	        CLC		      ;  No! Ignore all, start from scratch
-	        RTS
-_CONT		BIT     MODEM         ;  Test MODE byte
+NOTHEX          CPY     YSAVM         ;  Check if L, H empty (no hex digits).
+	        BEQ     RETERR        ;  Yes, generate ESC sequence.
+	        BIT     MODEM         ;  Test MODE byte
 	        BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
 	        LDA     L             ;  LSD's of hex data
 	        STA     (STL,X)       ;  Store current 'store index'(X=0)
@@ -2953,14 +2950,14 @@ SETADR          LDA     L-1,X         ;  Copy hex data to
 	        DEX                   ;  Next of 2 bytes
 	        BNE     SETADR        ;  Loop unless X = 0
 NXTPRNT         BNE     PRDATA        ;  NE means no address to print
-	        JSR 	CRLF
+	        JSR     CRLF
 	        LDA     XAMH          ;  Output high-order byte of address
 	        JSR     OUTHEX
 	        LDA     XAML          ;  Output low-order byte of address
 	        JSR     OUTHEX
 	        LDA     #':'          ;  Print colon
 	        JSR     OUTCH
-PRDATA          JSR 	OUTSP
+PRDATA          JSR     OUTSP
 	        LDA     (XAML,X)      ;  Get data from address (X=0)
 	        JSR     OUTHEX        ;  Output it in hex format
 XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).
@@ -2975,13 +2972,14 @@ XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).
 MOD8CHK         LDA     XAML          ;  If address MOD 8 = 0 start new line
 	        AND     #$07
 	        BPL     NXTPRNT       ;  Always taken.
-	
+
+	* = $FFDC
+
 	.if APPLE1
 ; Apple 1 I/O values
 KBD     =$D010		; Apple 1 Keyboard character read.
 KBDRDY  =$D011		; Apple 1 Keyboard data waiting when negative.
 
-	* = $FFDC
 OUTHEX	PHA 		; Print 1 hex byte.
 	LSR
 	LSR 
@@ -3004,7 +3002,6 @@ PUTCH	=IOMEM+1
 KBD	=IOMEM+4
 KBDRDY  =IOMEM+4
 
-	* = $FFDC
 OUTHEX	PHA 		; Print 1 hex byte.
 	LSR
 	LSR 

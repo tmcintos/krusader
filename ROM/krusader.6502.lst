@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass -q -i -b -o ROM/krusader.6502.bin -L ROM/krusader.6502.lst -l ROM/krusader.6502.lbl --vice-labels --map=ROM/krusader.6502.map krusader.6502.asm
-; Fri Feb 21 16:13:20 2025
+; Fri Feb 21 21:11:19 2025
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -2275,46 +2275,45 @@
 .ff07	a9 a7		lda #$a7		        LDA     #$A7          ;  KBD and DSP control register mask
 .ff09	8d 11 d0	sta $d011		        STA     KBDRDY        ;  Enable interrupts, set CA1, CB1 for
 .ff0c	8d 13 d0	sta $d013		        STA     DSPCR         ;   positive edge sense/output mode.
-.ff0f	a9 5c		lda #$5c	ESCAPE          LDA     #MONPROMPT       ;  Print prompt character
+.ff0f	a9 5c		lda #$5c	ESCAPE          LDA     #MONPROMPT    ;  Print prompt character
 .ff11	20 ef ff	jsr $ffef		        JSR     OUTCH         ;  Output it.
-.ff14					GET
-.ff14	20 1b ff	jsr $ff1b			JSR 	GETLINE
-.ff17	90 f6		bcc $ff0f		        BCC 	ESCAPE
-.ff19	b0 f9		bcs $ff14		        BCS 	GET
-.ff1b	20 e5 fe	jsr $fee5	GETLINE         JSR 	CRLF
+.ff14	20 1b ff	jsr $ff1b	MONLOOP	        JSR     GETLINE       ;  Attempt to read and execute one command
+.ff17	90 f6		bcc $ff0f		        BCC     ESCAPE        ;  Error, generate ESC sequence
+.ff19	b0 f9		bcs $ff14		        BCS     MONLOOP       ;  Read next command
+.ff1b	20 e5 fe	jsr $fee5	GETLINE         JSR     CRLF
 .ff1e	a0 01		ldy #$01		        LDY     #0+1          ;  Start a new input line
 .ff20	88		dey		BACKSPACE       DEY                   ;  Backup text index
 .ff21	30 f8		bmi $ff1b		        BMI     GETLINE       ;  Oops, line's empty, reinitialize
-.ff23	20 be fe	jsr $febe	NEXTCHAR        JSR 	GETCH1
-.ff26	99 00 02	sta $0200,y			STA     IN,Y          ;  Add to text buffer
-.ff29	c9 0d		cmp #$0d		        CMP     #CR
-.ff2b	f0 0b		beq $ff38		        BEQ 	_CONT
-.ff2d	c9 5f		cmp #$5f			CMP     #BSA1         ;  Backspace key?
+.ff23	20 be fe	jsr $febe	NEXTCHAR        JSR     GETCH1
+.ff26	99 00 02	sta $0200,y		        STA     IN,Y          ;  Add to text buffer
+.ff29	c9 0d		cmp #$0d		        CMP     #CR           ;  CR?
+.ff2b	f0 0d		beq $ff3a		        BEQ     GOTCR         ;  Yes.
+.ff2d	c9 5f		cmp #$5f		        CMP     #BSA1         ;  Backspace key?
 .ff2f	f0 ef		beq $ff20		        BEQ     BACKSPACE     ;  Yes
 .ff31	c9 1b		cmp #$1b		        CMP     #ESC          ;  ESC?
-.ff33	f0 da		beq $ff0f		        BEQ     ESCAPE        ;  Yes
+.ff33	f0 03		beq $ff38		        BEQ     RETERR        ;  Yes
 .ff35	c8		iny			        INY                   ;  Advance text index
 .ff36	10 eb		bpl $ff23		        BPL     NEXTCHAR      ;  Auto ESC if line longer than 127
-.ff38					_CONT
-.ff38	a0 ff		ldy #$ff		        LDY     #-1           ;  Reset text index
-.ff3a	a9 00		lda #$00		        LDA     #0            ;  Default mode is XAM
-.ff3c	aa		tax			        TAX                   ;  X=0
-.ff3d	0a		asl a		SETSTOR         ASL                   ;  Leaves $7B if setting STOR mode
-.ff3e	85 2b		sta $2b		SETMODE         STA     MODEM         ;  Set mode flags
-.ff40	c8		iny		BLSKIP          INY                   ;  Advance text index
-.ff41	b9 00 02	lda $0200,y	NEXTITEM        LDA     IN,Y          ;  Get character
-.ff44	c9 0d		cmp #$0d		        CMP     #CR
-.ff46	d0 02		bne $ff4a		        BNE 	_CONT
-.ff48	38		sec		     		SEC
-.ff49	60		rts		     		RTS
-.ff4a	09 80		ora #$80	_CONT           ORA 	#$80
-.ff4c	c9 ae		cmp #$ae		        CMP     #'.'+$80
-.ff4e	90 f0		bcc $ff40		        BCC     BLSKIP        ;  Ignore everything below "."!
-.ff50	f0 ec		beq $ff3e		        BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
+.ff38	18		clc		RETERR	        CLC                   ;  Set C=0, indicating error
+.ff39	60		rts		RETURN	        RTS                   ;  Return to caller (above or external)
+.ff3a					GOTCR
+.ff3a	a0 ff		ldy #$ff		        LDY     #-1           ;  Reset text index
+.ff3c	a9 00		lda #$00		        LDA     #0            ;  Default mode is XAM
+.ff3e	aa		tax			        TAX                   ;  X=0
+.ff3f	0a		asl a		SETSTOR         ASL                   ;  Leaves $7B if setting STOR mode
+.ff40	85 2b		sta $2b		SETMODE         STA     MODEM         ;  Set mode flags
+.ff42	c8		iny		BLSKIP          INY                   ;  Advance text index
+.ff43	b9 00 02	lda $0200,y	NEXTITEM        LDA     IN,Y          ;  Get character
+.ff46	c9 0d		cmp #$0d		        CMP     #CR           ;  CR? (set C=1 if equal)
+.ff48	f0 ef		beq $ff39		        BEQ     RETURN        ;  Yes, done this line. Return C=1
+.ff4a	09 80		ora #$80		        ORA     #$80          ;  Set MSB for code below
+.ff4c	c9 ae		cmp #$ae		        CMP     #'.'+$80      ;  "."?"
+.ff4e	90 f2		bcc $ff42		        BCC     BLSKIP        ;  Ignore everything below "."!
+.ff50	f0 ee		beq $ff40		        BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
 .ff52	c9 ba		cmp #$ba		        CMP     #':'+$80
-.ff54	f0 e7		beq $ff3d		        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $7B
+.ff54	f0 e9		beq $ff3f		        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $7B
 .ff56	c9 d2		cmp #$d2		        CMP     #'R'+$80
-.ff58	f0 3d		beq $ff97		        BEQ     RUNM          ;  Run the program! Forget the rest
+.ff58	f0 3b		beq $ff95		        BEQ     RUNM          ;  Run the program! Forget the rest
 .ff5a	86 28		stx $28			        STX     L             ;  Clear input value (X=0)
 .ff5c	86 29		stx $29			        STX     H
 .ff5e	84 2a		sty $2a			        STY     YSAVM          ;  Save Y for comparison
@@ -2337,49 +2336,47 @@
 .ff7b	d0 f8		bne $ff75		        BNE     HEXSHIFT      ;  No, loop
 .ff7d	c8		iny			        INY                   ;  Advance text index
 .ff7e	d0 e0		bne $ff60		        BNE     NEXTHEX       ;  Always taken
-.ff80	c4 2a		cpy $2a		NOTHEX          CPY     YSAVM         ;  Was at least 1 hex digit given?
-.ff82	d0 02		bne $ff86		        BNE 	_CONT
-.ff84	18		clc			        CLC		      ;  No! Ignore all, start from scratch
-.ff85	60		rts			        RTS
-.ff86	24 2b		bit $2b		_CONT		BIT     MODEM         ;  Test MODE byte
-.ff88	50 10		bvc $ff9a		        BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
-.ff8a	a5 28		lda $28			        LDA     L             ;  LSD's of hex data
-.ff8c	81 26		sta ($26,x)		        STA     (STL,X)       ;  Store current 'store index'(X=0)
-.ff8e	e6 26		inc $26			        INC     STL           ;  Increment store index.
-.ff90	d0 af		bne $ff41		        BNE     NEXTITEM      ;  No carry!
-.ff92	e6 27		inc $27			        INC     STH           ;  Add carry to 'store index' high
-.ff94	4c 41 ff	jmp $ff41	TONEXTITEM      JMP     NEXTITEM      ;  Get next command item.
-.ff97	6c 24 00	jmp ($0024)	RUNM            JMP     (XAML)        ;  Run user's program
-.ff9a	30 27		bmi $ffc3	NOTSTOR         BMI     XAMNEXT       ;  B7 = 0 for XAM, 1 for BLOCK XAM
-.ff9c	a2 02		ldx #$02		        LDX     #2            ;  Copy 2 bytes
-.ff9e	b5 27		lda $27,x	SETADR          LDA     L-1,X         ;  Copy hex data to
-.ffa0	95 25		sta $25,x		        STA     STL-1,X       ;   'store index'
-.ffa2	95 23		sta $23,x		        STA     XAML-1,X      ;   and to 'XAM index'
-.ffa4	ca		dex			        DEX                   ;  Next of 2 bytes
-.ffa5	d0 f7		bne $ff9e		        BNE     SETADR        ;  Loop unless X = 0
-.ffa7	d0 12		bne $ffbb	NXTPRNT         BNE     PRDATA        ;  NE means no address to print
-.ffa9	20 e5 fe	jsr $fee5		        JSR 	CRLF
-.ffac	a5 25		lda $25			        LDA     XAMH          ;  Output high-order byte of address
-.ffae	20 dc ff	jsr $ffdc		        JSR     OUTHEX
-.ffb1	a5 24		lda $24			        LDA     XAML          ;  Output low-order byte of address
-.ffb3	20 dc ff	jsr $ffdc		        JSR     OUTHEX
-.ffb6	a9 3a		lda #$3a		        LDA     #':'          ;  Print colon
-.ffb8	20 ef ff	jsr $ffef		        JSR     OUTCH
-.ffbb	20 e0 fe	jsr $fee0	PRDATA          JSR 	OUTSP
-.ffbe	a1 24		lda ($24,x)		        LDA     (XAML,X)      ;  Get data from address (X=0)
-.ffc0	20 dc ff	jsr $ffdc		        JSR     OUTHEX        ;  Output it in hex format
-.ffc3	86 2b		stx $2b		XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).
-.ffc5	a5 24		lda $24			        LDA     XAML          ;  See if there's more to print
-.ffc7	c5 28		cmp $28			        CMP     L
-.ffc9	a5 25		lda $25			        LDA     XAMH
-.ffcb	e5 29		sbc $29			        SBC     H
-.ffcd	b0 c5		bcs $ff94		        BCS     TONEXTITEM    ;  Not less! No more data to output
-.ffcf	e6 24		inc $24			        INC     XAML          ;  Increment 'examine index'
-.ffd1	d0 02		bne $ffd5		        BNE     MOD8CHK       ;  No carry!
-.ffd3	e6 25		inc $25			        INC     XAMH
-.ffd5	a5 24		lda $24		MOD8CHK         LDA     XAML          ;  If address MOD 8 = 0 start new line
-.ffd7	29 07		and #$07		        AND     #$07
-.ffd9	10 cc		bpl $ffa7		        BPL     NXTPRNT       ;  Always taken.
+.ff80	c4 2a		cpy $2a		NOTHEX          CPY     YSAVM         ;  Check if L, H empty (no hex digits).
+.ff82	f0 b4		beq $ff38		        BEQ     RETERR        ;  Yes, generate ESC sequence.
+.ff84	24 2b		bit $2b			        BIT     MODEM         ;  Test MODE byte
+.ff86	50 10		bvc $ff98		        BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
+.ff88	a5 28		lda $28			        LDA     L             ;  LSD's of hex data
+.ff8a	81 26		sta ($26,x)		        STA     (STL,X)       ;  Store current 'store index'(X=0)
+.ff8c	e6 26		inc $26			        INC     STL           ;  Increment store index.
+.ff8e	d0 b3		bne $ff43		        BNE     NEXTITEM      ;  No carry!
+.ff90	e6 27		inc $27			        INC     STH           ;  Add carry to 'store index' high
+.ff92	4c 43 ff	jmp $ff43	TONEXTITEM      JMP     NEXTITEM      ;  Get next command item.
+.ff95	6c 24 00	jmp ($0024)	RUNM            JMP     (XAML)        ;  Run user's program
+.ff98	30 27		bmi $ffc1	NOTSTOR         BMI     XAMNEXT       ;  B7 = 0 for XAM, 1 for BLOCK XAM
+.ff9a	a2 02		ldx #$02		        LDX     #2            ;  Copy 2 bytes
+.ff9c	b5 27		lda $27,x	SETADR          LDA     L-1,X         ;  Copy hex data to
+.ff9e	95 25		sta $25,x		        STA     STL-1,X       ;   'store index'
+.ffa0	95 23		sta $23,x		        STA     XAML-1,X      ;   and to 'XAM index'
+.ffa2	ca		dex			        DEX                   ;  Next of 2 bytes
+.ffa3	d0 f7		bne $ff9c		        BNE     SETADR        ;  Loop unless X = 0
+.ffa5	d0 12		bne $ffb9	NXTPRNT         BNE     PRDATA        ;  NE means no address to print
+.ffa7	20 e5 fe	jsr $fee5		        JSR     CRLF
+.ffaa	a5 25		lda $25			        LDA     XAMH          ;  Output high-order byte of address
+.ffac	20 dc ff	jsr $ffdc		        JSR     OUTHEX
+.ffaf	a5 24		lda $24			        LDA     XAML          ;  Output low-order byte of address
+.ffb1	20 dc ff	jsr $ffdc		        JSR     OUTHEX
+.ffb4	a9 3a		lda #$3a		        LDA     #':'          ;  Print colon
+.ffb6	20 ef ff	jsr $ffef		        JSR     OUTCH
+.ffb9	20 e0 fe	jsr $fee0	PRDATA          JSR     OUTSP
+.ffbc	a1 24		lda ($24,x)		        LDA     (XAML,X)      ;  Get data from address (X=0)
+.ffbe	20 dc ff	jsr $ffdc		        JSR     OUTHEX        ;  Output it in hex format
+.ffc1	86 2b		stx $2b		XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).
+.ffc3	a5 24		lda $24			        LDA     XAML          ;  See if there's more to print
+.ffc5	c5 28		cmp $28			        CMP     L
+.ffc7	a5 25		lda $25			        LDA     XAMH
+.ffc9	e5 29		sbc $29			        SBC     H
+.ffcb	b0 c5		bcs $ff92		        BCS     TONEXTITEM    ;  Not less! No more data to output
+.ffcd	e6 24		inc $24			        INC     XAML          ;  Increment 'examine index'
+.ffcf	d0 02		bne $ffd3		        BNE     MOD8CHK       ;  No carry!
+.ffd1	e6 25		inc $25			        INC     XAMH
+.ffd3	a5 24		lda $24		MOD8CHK         LDA     XAML          ;  If address MOD 8 = 0 start new line
+.ffd5	29 07		and #$07		        AND     #$07
+.ffd7	10 cc		bpl $ffa5		        BPL     NXTPRNT       ;  Always taken.
 =$d010					KBD     =$D010		; Apple 1 Keyboard character read.
 =$d011					KBDRDY  =$D011		; Apple 1 Keyboard data waiting when negative.
 .ffdc	48		pha		OUTHEX	PHA 		; Print 1 hex byte.
