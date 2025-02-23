@@ -2819,7 +2819,12 @@ GETCH   		; Get a character from the keyboard.
 ;  Written by Steve Wozniak 1976
 ;  Minor adjustments by Ken Wessen to support the minimonitor ! command
 ;  (i.e., Calling GETLINE as a subroutine)
-;  Standard entry points are unchanged
+;  Standard entry points are unchanged:
+;       $FF1A   legacy ESCAPE re-entry point
+;       $FF1F   GETLINE (now a subroutine that returns after command)
+;       $FFDC   PRBYTE (OUTHEX) subroutine
+;       $FFE5   PRHEX subroutine
+;       $FFEF   ECHO (OUTCH) subroutine
 ;
 ;-------------------------------------------------------------------------
 
@@ -2853,13 +2858,20 @@ RESET           CLD                   ;  Clear decimal arithmetic mode
 	        LDA     #$A7          ;  KBD and DSP control register mask
 	        STA     KBDRDY        ;  Enable interrupts, set CA1, CB1 for
 	        STA     DSPCR         ;   positive edge sense/output mode.
+; external monitor re-entry point
 ESCAPE          LDA     #MONPROMPT    ;  Print prompt character
 	        JSR     OUTCH         ;  Output it.
+; main monitor loop
 MONLOOP	        JSR     GETLINE       ;  Attempt to read and execute one command
-	        BCC     ESCAPE        ;  Error, generate ESC sequence
 	        BCS     MONLOOP       ;  Read next command
+                NOP                   ;  OLDESC padding
+OLDESC	        CLC                   ;  $FF1A legacy ESCAPE re-entry point
+	        BCC     ESCAPE        ;  Error, generate ESC sequence
+	        NOP                   ;  GETLINE padding
+	        NOP                   ;  GETLINE padding
 
-GETLINE         JSR     CRLF
+; GETLINE subroutine
+GETLINE         JSR     CRLF          ;  $FF1F GETLINE entry point
 	        LDY     #0+1          ;  Start a new input line
 BACKSPACE       DEY                   ;  Backup text index
 	        BMI     GETLINE       ;  Oops, line's empty, reinitialize
@@ -2875,6 +2887,20 @@ NEXTCHAR        JSR     GETCH1
 	        BPL     NEXTCHAR      ;  Auto ESC if line longer than 127
 RETERR	        CLC                   ;  Set C=0, indicating error
 RETURN	        RTS                   ;  Return to caller (above or external)
+
+; NOTHEX moved here to eliminate 3-byte JMP (TONEXTITEM)
+NOTHEX          CPY     YSAVM         ;  Check if L, H empty (no hex digits).
+	        BEQ     RETERR        ;  Yes, generate ESC sequence.
+	        BIT     MODEM         ;  Test MODE byte
+	        BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
+	        LDA     L             ;  LSD's of hex data
+	        STA     (STL,X)       ;  Store current 'store index'(X=0)
+	        INC     STL           ;  Increment store index.
+	        BNE     NEXTITEM      ;  No carry!
+	        INC     STH           ;  Add carry to 'store index' high
+	        BVS     NEXTITEM      ;  Get next command item. Always taken.
+
+; continued from NEXTCHAR
 GOTCR	                              ;  Line received, now let's parse it
 	        LDY     #-1           ;  Reset text index
 	        LDA     #0            ;  Default mode is XAM
@@ -2915,17 +2941,11 @@ HEXSHIFT        ASL                   ;  Hex digit left, MSB to carry
 	        BNE     HEXSHIFT      ;  No, loop
 	        INY                   ;  Advance text index
 	        BNE     NEXTHEX       ;  Always taken
-NOTHEX          CPY     YSAVM         ;  Check if L, H empty (no hex digits).
-	        BEQ     RETERR        ;  Yes, generate ESC sequence.
-	        BIT     MODEM         ;  Test MODE byte
-	        BVC     NOTSTOR       ;  B6=0 is STOR, 1 is XAM or BLOCK XAM
-	        LDA     L             ;  LSD's of hex data
-	        STA     (STL,X)       ;  Store current 'store index'(X=0)
-	        INC     STL           ;  Increment store index.
-	        BNE     NEXTITEM      ;  No carry!
-	        INC     STH           ;  Add carry to 'store index' high
-TONEXTITEM      JMP     NEXTITEM      ;  Get next command item.
+
+; 'R' command - does not return
 RUNM            JMP     (XAML)        ;  Run user's program
+
+; continued from NOTHEX
 NOTSTOR         BMI     XAMNEXT       ;  B7 = 0 for XAM, 1 for BLOCK XAM
 	        LDX     #2            ;  Copy 2 bytes
 SETADR          LDA     L-1,X         ;  Copy hex data to
@@ -2949,7 +2969,7 @@ XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).
 	        CMP     L
 	        LDA     XAMH
 	        SBC     H
-	        BCS     TONEXTITEM    ;  Not less! No more data to output
+	        BCS     NEXTITEM      ;  Not less! No more data to output
 	        INC     XAML          ;  Increment 'examine index'
 	        BNE     MOD8CHK       ;  No carry!
 	        INC     XAMH
@@ -2980,6 +3000,12 @@ OUTCH	BIT DSP         ;  DA bit (B7) cleared yet?
 	BMI OUTCH       ;  No! Wait for display ready
 	STA DSP         ;  Output character. Sets DA
 	RTS
+; ensure that documented entry points are maintained
+.cerror $FF1A != OLDESC, "legacy ESCAPE entry point changed"
+.cerror $FF1F != GETLINE, "GETLINE entry point changed"
+.cerror $FFDC != OUTHEX, "PRBYTE entry point changed"
+.cerror $FFE5 != PRHEX, "PRHEX entry point changed"
+.cerror $FFEF != OUTCH, "ECHO entry point changed"
 	.else
 IOMEM	=$E000
 PUTCH	=IOMEM+1
