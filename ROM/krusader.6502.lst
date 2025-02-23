@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass -q -i -b -o ROM/krusader.6502.bin -L ROM/krusader.6502.lst -l ROM/krusader.6502.lbl --vice-labels --map=ROM/krusader.6502.map krusader.6502.asm
-; Fri Feb 21 21:11:19 2025
+; Sat Feb 22 21:37:55 2025
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -2263,7 +2263,7 @@
 =$28					L               =     $28             ;  Hex value parsing Low
 =$29					H               =     $29             ;  Hex value parsing High
 =$2a					YSAVM           =     $2A             ;  Used to see if hex value is given
-=$2b					MODEM           =     $2B             ;  $00=XAM, $7F=STOR, $AE=BLOCK XAM
+=$2b					MODEM           =     $2B             ;  $00=XAM, $74=STOR, $AE=BLOCK XAM
 =$0200					IN              =     $0200           ;  Input buffer to $027F
 =$d012					DSP             =     $D012           ;  PIA.B display output register
 =$d013					DSPCR           =     $D013           ;  PIA.B display control register
@@ -2300,7 +2300,7 @@
 .ff3a	a0 ff		ldy #$ff		        LDY     #-1           ;  Reset text index
 .ff3c	a9 00		lda #$00		        LDA     #0            ;  Default mode is XAM
 .ff3e	aa		tax			        TAX                   ;  X=0
-.ff3f	0a		asl a		SETSTOR         ASL                   ;  Leaves $7B if setting STOR mode
+.ff3f	0a		asl a		SETSTOR         ASL                   ;  Leaves $74 if setting STOR mode
 .ff40	85 2b		sta $2b		SETMODE         STA     MODEM         ;  Set mode flags
 .ff42	c8		iny		BLSKIP          INY                   ;  Advance text index
 .ff43	b9 00 02	lda $0200,y	NEXTITEM        LDA     IN,Y          ;  Get character
@@ -2311,7 +2311,7 @@
 .ff4e	90 f2		bcc $ff42		        BCC     BLSKIP        ;  Ignore everything below "."!
 .ff50	f0 ee		beq $ff40		        BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
 .ff52	c9 ba		cmp #$ba		        CMP     #':'+$80
-.ff54	f0 e9		beq $ff3f		        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $7B
+.ff54	f0 e9		beq $ff3f		        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $74
 .ff56	c9 d2		cmp #$d2		        CMP     #'R'+$80
 .ff58	f0 3b		beq $ff95		        BEQ     RUNM          ;  Run the program! Forget the rest
 .ff5a	86 28		stx $28			        STX     L             ;  Clear input value (X=0)

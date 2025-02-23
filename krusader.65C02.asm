@@ -2834,7 +2834,7 @@ STH             =     $27             ;  Store address High
 L               =     $28             ;  Hex value parsing Low
 H               =     $29             ;  Hex value parsing High
 YSAVM           =     $2A             ;  Used to see if hex value is given
-MODEM           =     $2B             ;  $00=XAM, $7F=STOR, $AE=BLOCK XAM
+MODEM           =     $2B             ;  $00=XAM, $74=STOR, $AE=BLOCK XAM
 
 IN              =     $0200           ;  Input buffer to $027F
 
@@ -2879,7 +2879,7 @@ GOTCR	                              ;  Line received, now let's parse it
 	        LDY     #-1           ;  Reset text index
 	        LDA     #0            ;  Default mode is XAM
 	        TAX                   ;  X=0
-SETSTOR         ASL                   ;  Leaves $7B if setting STOR mode
+SETSTOR         ASL                   ;  Leaves $74 if setting STOR mode
 SETMODE         STA     MODEM         ;  Set mode flags
 BLSKIP          INY                   ;  Advance text index
 NEXTITEM        LDA     IN,Y          ;  Get character
@@ -2890,7 +2890,7 @@ NEXTITEM        LDA     IN,Y          ;  Get character
 	        BCC     BLSKIP        ;  Ignore everything below "."!
 	        BEQ     SETMODE       ;  Set BLOCK XAM mode ("." = $AE)
 	        CMP     #':'+$80
-	        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $7B
+	        BEQ     SETSTOR       ;  Set STOR mode! $BA will become $74
 	        CMP     #'R'+$80
 	        BEQ     RUNM          ;  Run the program! Forget the rest
 	        STX     L             ;  Clear input value (X=0)
