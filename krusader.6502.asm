@@ -18,7 +18,7 @@ TABTOSPACE = 1
 UNK_ERR_CHECK = 0
 
 MINIMONITOR = INROM & 1
-DOTRACE = MINIMONITOR & 1 
+DOTRACE = MINIMONITOR & 1
 BRKAS2 = 1		; if 1, BRK will assemble to two $00 bytes
 			; if set, then minimonitor will work unchanged 
 			; for both hardware and software interrupts
@@ -2776,7 +2776,7 @@ PRDASH
 	
 ; ****************************************
 	
-	.if MINIMONITOR
+	.if INROM|MINIMONITOR
 GETCH1	JSR GETCH
 	JMP OUTCH
 	.endif
@@ -3044,11 +3044,13 @@ OUTCH	STA PUTCH
 	RTS  
 	.endif
 	
-	.if MINIMONITOR
 	* = $FFFA	; INTERRUPT VECTORS
-	.word $0F00
+	.word $0F00	; NMI
 	.word RESET
-	.word DEBUG
+	.if MINIMONITOR
+	.word DEBUG	; IRQBRK
+	.else
+	.word $0000	; IRQBRK
 	.endif
 	.else
 ; Apple 1 I/O values

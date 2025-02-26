@@ -1,7 +1,7 @@
 #
 # prerequisites:
 # - 64tass
-# - hexdump
+# - cat, cut, grep, printf, sed, tr, xxd
 
 ROMS=\
 	ROM/krusader.6502.bin \
@@ -18,6 +18,10 @@ ROM/krusader.%.bin: krusader.%.asm
 	printf "#ifndef krusader_$*_h\n#define krusader_$*_h\n\n" > ROM/krusader.$*.h
 	sed -e 's/= \$$/0x/' -e 's/^/#define KRUSADER_$*_SYM_/' ROM/krusader.$*.def >> ROM/krusader.$*.h
 	printf "\n#endif /* krusader_$*_h */\n" >> ROM/krusader.$*.h
-	cat ROM/apple-basic.rom $@ > ROM/$*.rom.bin
-	hexdump -v -e '"%04_ax:" 16/1 " %02x" "\n"' ROM/$*.rom.bin | tr a-z A-Z | sed -e 's/^0/E/' -e 's/^1/F/' > ROM/$*.rom.hex
-	sed -e 's/^E/A/' -e 's/^F/B/' ROM/$*.rom.hex > ROM/$*.rom.hex.upload
+	if grep -q -E 'INROM\s+=\s+\$$1' ROM/krusader.$*.def; then \
+		cat ROM/apple-basic.rom $@ > ROM/$*.rom.bin; \
+		xxd -u -g 1 -o 0xE000 ROM/$*.rom.bin | cut -c5-57 | tr a-z A-Z > ROM/$*.rom.hex; \
+		xxd -u -g 1 -o 0xA000 ROM/$*.rom.bin | cut -c5-57 | tr a-z A-Z > ROM/$*.rom.hex.upload; \
+	else \
+		xxd -u -g 1 -o 0x7100 $@ | cut -c5-57 | tr a-z A-Z > ROM/krusader.$*.hex; \
+	fi

@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass -q -i -b -o ROM/krusader.65C02.bin -L ROM/krusader.65C02.lst --vice-labels -l ROM/krusader.65C02.lbl --simple-labels -l ROM/krusader.65C02.def --map=ROM/krusader.65C02.map krusader.65C02.asm
-; Tue Feb 25 13:51:37 2025
+; Tue Feb 25 19:25:03 2025
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -2375,8 +2375,8 @@
 .fff2	30 fb		bmi $ffef		BMI OUTCH       ;  No! Wait for display ready
 .fff4	8d 12 d0	sta $d012		STA DSP         ;  Output character. Sets DA
 .fff7	60		rts			RTS
->fffa	00 0f					.word $0F00
+>fffa	00 0f					.word $0F00	; NMI
 >fffc	00 ff					.word RESET
->fffe	03 fe					.word DEBUG
+>fffe	03 fe					.word DEBUG	; IRQBRK
 
 ;******  End of listing

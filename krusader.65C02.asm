@@ -2760,7 +2760,7 @@ PRDASH
 	
 ; ****************************************
 	
-	.if MINIMONITOR
+	.if INROM|MINIMONITOR
 GETCH1	JSR GETCH
 	JMP OUTCH
 	.endif
@@ -3028,11 +3028,13 @@ OUTCH	STA PUTCH
 	RTS  
 	.endif
 	
-	.if MINIMONITOR
 	* = $FFFA	; INTERRUPT VECTORS
-	.word $0F00
+	.word $0F00	; NMI
 	.word RESET
-	.word DEBUG
+	.if MINIMONITOR
+	.word DEBUG	; IRQBRK
+	.else
+	.word $0000	; IRQBRK
 	.endif
 	.else
 ; Apple 1 I/O values
