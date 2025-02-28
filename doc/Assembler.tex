@@ -54,16 +54,16 @@ or is that \textit{Reasonably Useful?}  You decide!}
 
 \section{Introduction}
 
-\krusader is a program written to allow assembly language development on the Replica 1 -- an Apple 1 clone designed by Vince Briel\footnote{\url{http://www.brielcomputers.com}}, and described in the book \textit{Apple 1 Replica Creation: Back to the Garage} by Tom Owad\footnote{\url{http://www.applefritter.com/replica}}.
+\krusader is a program written to allow assembly language development on the Replica 1 -- an Apple 1 clone designed by Vince Briel\footnote{\url{http://www.brielcomputers.com}}, and described in the book \textit{Apple 1 Replica Creation: Back to the Garage} by Tom Owad\footnote{\url{https://www.applefritter.com/replica}}.
 \krusader includes a simple shell and editor, a single-pass symbolic assembler, a disassembler, and a simple interactive debugger, and fits in just under 4K (so it is
 small enough to fit in the 8K of Replica 1 ROM along with the monitor and Apple BASIC).  
 Although designed for the Replica 1/Apple 1, there is very little system dependent code, and since full source code is provided, \krusader can easily be adapted to any other 6502 based system.  However, it's limitations may mean it is not an appropriate tool in many cases (for example, it has no concept of a file-system and so would not be particularly suitable for use on an Apple II).
 
 \krusader handles a fairly standard and expressive syntax for its assembly source code.  
-For users who are unfamiliar with the 6502 instruction set, I recommend the introduction by Andrew John Jacobs at \url{http://www.obelisk.demon.co.uk/6502/}.  
+For users who are unfamiliar with the 6502 instruction set, I recommend the introduction by Andrew John Jacobs at \url{http://www.6502.org/users/obelisk/6502/}.  
 On a Replica 1, \krusader can assemble over 200 lines of code per second, and given its 32K of RAM, the defaults provide space for around 20K of tokenised source code, 7K of generated code, and up to 256 global symbols.
 
-The \krusader distribution is comprised of two source files, one that can assemble and disassemble 6502 code only, and the another that is able to handle the expanded 65C02 instruction set (see section \ref{sec:65C02}). Both versions include a \emph{mini-monitor} for interactive debugging (see section \ref{sec:minimonitor}). In addition, two binaries of each version are supplied -- one to be loaded in high RAM at addresses \texttt{\$7100-\$7FFF}, and the other that belongs in ROM from \texttt{\$F000-\$FEFF}.  Since source is provided, alternative binaries are easy to produce.  I use the 6502 simulator by Michal Kowalski\footnote{\url{http://home.pacbell.net/michal\_k/}} to assemble the object code, and test it on the Pom1 simulator\footnote{The original is at \url{http://www.chez.com/apple1/Apple1project/}, and a version that fixes various bugs at \url{http://school.anhb.uwa.edu.au/personalpages/kwessen/apple1}. This version also adds the capability to emulate a 65C02-based Replica 1.} and my Replica 1.  Although the latest version of \krusader supports the 65C02, it contains only 6502 code itself, and this manual will cover the 6502 features first, saving a discussion of the 65C02 enhancements until section \ref{sec:65C02}.  Addresses quoted in this manual will be for the high RAM version of the code, with the ROM version values following in brackets, but these values are easily offset for any particular starting address.
+The \krusader distribution is comprised of two source files, one that can assemble and disassemble 6502 code only, and the another that is able to handle the expanded 65C02 instruction set (see section \ref{sec:65C02}). Both versions include a \emph{mini-monitor} for interactive debugging (see section \ref{sec:minimonitor}). In addition, two binaries of each version are supplied -- one to be loaded in high RAM at addresses \texttt{\$7100-\$7FFF}, and the other that belongs in ROM from \texttt{\$F000-\$FEFF}.  Since source is provided, alternative binaries are easy to produce.  I use the 6502 simulator by Michal Kowalski\footnote{\url{https://sbc.rictor.org/kowalski.html}} to assemble the object code, and test it on the Pom1 simulator\footnote{The original is at \url{http://www.chez.com/apple1/Apple1project/}, and a version that fixes various bugs at \url{https://thewessens.net/collection/apple1/Krusader.htm}. This version also adds the capability to emulate a 65C02-based Replica 1.} and my Replica 1.  Although the latest version of \krusader supports the 65C02, it contains only 6502 code itself, and this manual will cover the 6502 features first, saving a discussion of the 65C02 enhancements until section \ref{sec:65C02}.  Addresses quoted in this manual will be for the high RAM version of the code, with the ROM version values following in brackets, but these values are easily offset for any particular starting address.
 
 \section{Sample Session}
 \label{sec:samplesession}
@@ -456,7 +456,7 @@ shown below:
 The 8K of Replica 1 ROM, with Integer BASIC, the Monitor, and \krusader, leaves just
 enough space for a simple interactive debugger, and this section describes the debugger included
 with the ROM version of \krusader. By making the \texttt{IRQBRK} vector at \texttt{\$FFFE,F} point to the
-\texttt{DEBUG} routine at address \texttt{\$FE19} (\texttt{\$FE0A} for the 65C02 version), execution
+\texttt{DEBUG} routine at address \texttt{\$FE14} (\texttt{\$FE03} for the 65C02 version), execution
 of a \texttt{BRK} passes control to the mini-monitor, and the registers and next instruction are displayed as follows:
 \begin{alltt}
 A-41 X-FF Y-07 S-FD P-23 CZ
@@ -491,9 +491,9 @@ Apple 1 monitor.
 \label{tab:minimoncmds}
 \end{table}
 
-To return to the mini-monitor from the Apple 1 monitor, type \texttt{FE23R} (or \texttt{FE0AR} if you are
+To return to the mini-monitor from the Apple 1 monitor, type \texttt{FE1ER} (or \texttt{FE16R} if you are
 running the 65C02 version). Another useful address to remember is the disassembly routine at
-\texttt{\$FAD0} (\texttt{\$FAF8} for the 65C02 version), but bear in mind that using this routine involves changing
+\texttt{\$FACA} (\texttt{\$FAEA} for the 65C02 version), but bear in mind that using this routine involves changing
 the stored PC value at locations \texttt{\$F5} and \texttt{\$F6}, and this must be restored, using either the monitor
 or the mini-monitor, if you wish to resume the program being monitored.
 
@@ -921,7 +921,7 @@ can be loaded directly into the zero page address \texttt{\$FF}.
 		\begin{itemize}
 			\item Made source and disassembly listings continuous until key pressed.
 			\item  Added ‘!’ command to the shell and mini-monitor.
-			\item Bundled with the Krusader Toolkit\footnote{\url{http://school.anhb.uwa.edu.au/personalpages/kwessen/apple1/ktk.zip}} -- an integrated editor, terminal and emulator for the Replica 1.
+			\item Bundled with the Krusader Toolkit\footnote{\url{https://thewessens.net/collection/apple1/ktk.zip}} -- an integrated editor, terminal and emulator for the Replica 1.
 		\end{itemize}
 \end{itemize}
 
