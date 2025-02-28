@@ -1,3 +1,14 @@
+% ensure PDF is reproducible
+\pdfinfo{
+  /Creator ()
+  /Producer ()
+  /CreationDate (D:00000000000000)
+  /ModDate (D:00000000000000)
+}
+% this is key!
+\pdfmapfile{}
+\pdfmapfile{+lm.map} % Or other font maps you use
+
 \documentclass[12pt]{article}
 
 \usepackage[margin=2cm]{geometry}
@@ -8,12 +19,19 @@
 \usepackage{alltt}
 \usepackage{array}
 \usepackage{setspace}
+\usepackage{tabto}
+\usepackage{xspace}
+
+\newlength{\monowidth}
+\settowidth{\monowidth}{\texttt{0}} % Measure width of one monospaced character
+
+\TabPositions{0\monowidth, 4\monowidth, 11\monowidth, 15\monowidth, 29\monowidth} % Exact tab stops
 
 \newcommand{\jump}{~\newline}
 \newcommand{\replica}[1]{\textsf{#1}}
-\newcommand{\krusader}{\textsf{KRUSADER}~}
+\newcommand{\krusader}{\textsf{KRUSADER}\xspace}
 \renewcommand{\url}[1]{\href{#1}{\texttt{#1}}}
-\renewcommand{\baselinestretch}{1.08}
+%\renewcommand{\baselinestretch}{1.08}
 \renewcommand{\arraystretch}{1.2}
 
 \newcommand{\tighter}
@@ -37,15 +55,15 @@ or is that \textit{Reasonably Useful?}  You decide!}
 \section{Introduction}
 
 \krusader is a program written to allow assembly language development on the Replica 1 -- an Apple 1 clone designed by Vince Briel\footnote{\url{http://www.brielcomputers.com}}, and described in the book \textit{Apple 1 Replica Creation: Back to the Garage} by Tom Owad\footnote{\url{http://www.applefritter.com/replica}}.
-\krusader includes a simple shell and editor, a single-pass symbolic assembler, and a disassembler, and fits in just under 4K (so it is
+\krusader includes a simple shell and editor, a single-pass symbolic assembler, a disassembler, and a simple interactive debugger, and fits in just under 4K (so it is
 small enough to fit in the 8K of Replica 1 ROM along with the monitor and Apple BASIC).  
 Although designed for the Replica 1/Apple 1, there is very little system dependent code, and since full source code is provided, \krusader can easily be adapted to any other 6502 based system.  However, it's limitations may mean it is not an appropriate tool in many cases (for example, it has no concept of a file-system and so would not be particularly suitable for use on an Apple II).
 
 \krusader handles a fairly standard and expressive syntax for its assembly source code.  
-For users who are unfamiliar with the 6502 instruction set, I recommend the introduction by Andrew John Jacobs that can be found at \url{http://www.obelisk.demon.co.uk/6502/} (and the associated \url{http://www.obelisk.demon.co.uk/65C02/}).  
+For users who are unfamiliar with the 6502 instruction set, I recommend the introduction by Andrew John Jacobs at \url{http://www.obelisk.demon.co.uk/6502/}.  
 On a Replica 1, \krusader can assemble over 200 lines of code per second, and given its 32K of RAM, the defaults provide space for around 20K of tokenised source code, 7K of generated code, and up to 256 global symbols.
 
-The \krusader distribution is comprised of source files for various versions (the differences between these versions is described in section \ref{sec:history}), and two binaries for the latest version -- one to be loaded in high RAM at addresses \$7100-\$7FFF, and the other that belongs in ROM from \$F000-\$FEFF.  Since source is provided, alternative binaries are easy to produce.  I use the 6502 simulator by Michal Kowalski\footnote{\url{http://home.pacbell.net/michal\_k/}} to assemble the object code, and test it on the Pom1 simulator\footnote{The original is at \url{http://www.chez.com/apple1/Apple1project/}, and the version at \url{http://school.anhb.uwa.edu.au/personalpages/kwessen/apple1} fixes various bugs, and adds the capability to emulate a 65C02-based Replica 1.} and my Replica 1.  Although the latest version of \krusader supports the 65C02, it contains only 6502 code itself, and this manual will cover the 6502 features first, saving a discussion of the 65C02 enhancements until section \ref{sec:65C02}.  Addresses quoted in this manual will be for the high RAM version of the code, with the ROM version values following in brackets, but these values are easily offset for a version with any particular starting address.
+The \krusader distribution is comprised of two source files, one that can assemble and disassemble 6502 code only, and the another that is able to handle the expanded 65C02 instruction set (see section \ref{sec:65C02}). Both versions include a \emph{mini-monitor} for interactive debugging (see section \ref{sec:minimonitor}). In addition, two binaries of each version are supplied -- one to be loaded in high RAM at addresses \texttt{\$7100-\$7FFF}, and the other that belongs in ROM from \texttt{\$F000-\$FEFF}.  Since source is provided, alternative binaries are easy to produce.  I use the 6502 simulator by Michal Kowalski\footnote{\url{http://home.pacbell.net/michal\_k/}} to assemble the object code, and test it on the Pom1 simulator\footnote{The original is at \url{http://www.chez.com/apple1/Apple1project/}, and a version that fixes various bugs at \url{http://school.anhb.uwa.edu.au/personalpages/kwessen/apple1}. This version also adds the capability to emulate a 65C02-based Replica 1.} and my Replica 1.  Although the latest version of \krusader supports the 65C02, it contains only 6502 code itself, and this manual will cover the 6502 features first, saving a discussion of the 65C02 enhancements until section \ref{sec:65C02}.  Addresses quoted in this manual will be for the high RAM version of the code, with the ROM version values following in brackets, but these values are easily offset for any particular starting address.
 
 \section{Sample Session}
 \label{sec:samplesession}
@@ -99,11 +117,10 @@ In order to illustrate some more advanced features of the assembler, a second, m
 01D        JSR FWD
 01E        JSR BACK
 01F        RTS
+020<esc>
 \end{alltt}
 Again, type \replica{L} to list the code.
-Since this program is longer than 24 lines (i.e.~one Apple 1 screen), the listing will pause after 22 lines and wait for a keypress.  
-Hitting return will move the listing forward by one line, escape will cancel the listing, and any other
-key will list the next 22 lines.  Typing \replica{A} will assemble the code -- this time made up of 4 modules,
+Typing \replica{A} will assemble the code -- this time made up of 4 modules,
 each with their own starting address.  The assembler will output the following upon successful assembly:
 \begin{alltt}
 ? A
@@ -127,7 +144,7 @@ KJIHGFEDCBA
 Some other relevant features of this second example are the use of blank lines for layout, and symbols to represent both constants 
 (e.g.~\texttt{START  .=  'A'}) and memory locations (e.g.~\texttt{STEP   .=  \$30}).
 Also note the use of the \emph{local label} \texttt{.LOOP} in both the \texttt{FWD} and \texttt{BACK} modules.
-Local labels are indicated by an initial '\texttt{.}', and have module level scope only.
+Local labels are indicated by an initial `\texttt{.}', and have module level scope only.
 The \texttt{.=} and \texttt{.M} commands are two directives recognised by the assembler for
 defining symbols and modules respectively.  It is not necessary to give a memory location
 argument to the \texttt{.M} directive, and indeed only in very special circumstances would you wish to do so.
@@ -135,7 +152,7 @@ argument to the \texttt{.M} directive, and indeed only in very special circumsta
 \section{Shell Commands}
 
 The previous section introduced most of the available shell commands, in the context of a sample interactive session.
-Shell commands are entered in response to the \replica{?} prompt, and are all single key commands, with between zero and two arguments.  If the shell cannot process an entered command, \texttt{ERR: SYN} is output to indicate a syntax error.  Five of the twelve shell commands are for source editing, and the others are for assembling, running, disassembling, querying symbols and source memory, entering the monitor, and recovery.
+Shell commands are entered in response to the \replica{?} prompt, and are all single key commands, with between zero and two arguments.  If the shell cannot process an entered command, \texttt{ERR: SYN} is output to indicate a syntax error.  Five of the thirteen shell commands are for source editing, and the others are for assembling, running, disassembling, querying symbols and source memory, using the monitor, and recovery.
 Table \ref{tab:shellcmds} gives a summary of all commands and their syntax.
 \begin{table}[p]
 	\centering
@@ -149,10 +166,7 @@ Table \ref{tab:shellcmds} gives a summary of all commands and their syntax.
 									the end if no argument.  If $k$ lines are inserted, existing
 									lines from \replica{nnn} are shifted down by $k$.\tabularnewline
 	\replica{L} & $<$\replica{nnn}$>$ & List the source starting from line
-									\replica{nnn}, or the beginning if no argument.  The 
-									listing pauses for input every page -- hitting return shows the next
-									line, escape cancels the listing, and any other key shows
-									the next page.\tabularnewline
+									\replica{nnn}, or the beginning if no argument.  Press any key to stop the listing.\tabularnewline
 	\replica{X} & \replica{nnn~}$<$\replica{mmm}$>$ & Delete from lines
 									\replica{nnn} to \replica{mmm} inclusive.  If just one
 									argument, delete line \replica{nnn} only.  Care must be taken
@@ -166,19 +180,20 @@ Table \ref{tab:shellcmds} gives a summary of all commands and their syntax.
 	\replica{M} & & Show the memory range used to store the current source 
 									code.\tabularnewline
 	\replica{A} & & Assemble the current source code.\tabularnewline
-	\replica{V} & \replica{LABEL} & Show the value of the given label.\tabularnewline
+	\replica{V} & \replica{LABEL} & Show the value of the given label or expression.\tabularnewline
 	\replica{R} & \replica{\$nnnn} or \replica{LABEL} & 
 									Run from address \replica{\$nnnn}.  If the
 									program ends with an RTS, control is returned to the
 									shell.  Otherwise, re-enter the shell at address
-									\texttt{\$711A}(\texttt{\$F01A}).\tabularnewline
-	\replica{D} & $<$\replica{\$nnnn} or \replica{LABEL}$>$ & Disassemble 20 instructions
+									\texttt{\$711C}(\texttt{\$F01C}).\tabularnewline
+	\replica{D} & $<$\replica{\$nnnn} or \replica{LABEL}$>$ & Disassemble
 									from address \replica{\$nnnn}, or continue from the last
-									address if no argument.\tabularnewline
+									address if no argument. Press any key to stop the disassembly.\tabularnewline
+	\replica{!} & & Send the next line typed as a command to the Apple 1 Monitor.\tabularnewline
 	\replica{\$} & & Drop into the Apple 1 Monitor.  You can re-enter the shell at address
-									\texttt{\$711A}(\texttt{\$F01A}).\tabularnewline
+									\texttt{\$711C}(\texttt{\$F01C}).\tabularnewline
 	\replica{P} & \replica{$<$c$>$} & Panic!  This command attempts to recover lost source
-									(usually due to zero page data corruption).  If the 1st
+									(usually due to zero page data corruption).  If the first
 									line of source starts with a label, then give the first
 									letter of that label as an argument to this command.  For
 									more detail, see the section on source tokenisation
@@ -187,7 +202,7 @@ Table \ref{tab:shellcmds} gives a summary of all commands and their syntax.
 	\end{tabular}
 	\caption{\krusader shell commands.  Note that any shell commands that use labels
 	are dependent on the assembler's global symbol table being intact, specifically the pointer information
-	in zero page locations \texttt{\$33, \$34} and \texttt{\$35}, and the table data itself (see
+	in zero page locations \texttt{\$E9, \$EA} and \texttt{\$EB}, and the table data itself (see
 	figure \ref{fig:memmap}). 	Optional arguments are indicated by $<\cdots>$.}
 	\label{tab:shellcmds}
 \end{table}
@@ -220,13 +235,13 @@ has been completed.
 
 \krusader recognises the standard 3 character mnemonics for all legal 6502 instructions.  These are shown in table \ref{tab:mnemonics}.  Undocumented opcodes are not supported, and the 65C02 support is discussed in section \ref{sec:65C02}.
 The editor will not accept any line with an invalid entry in the mnemonic field.
-Note that although when the 6502 executes a \texttt{BRK} instruction, the return address pushed
-onto the stack is \texttt{PC}$+2$, \krusader assembles the \texttt{BRK} opcode as a single byte.
-The \texttt{.B} directive (see section \ref{sec:directives} below) should be used to set the value of any desired padding byte.
+Note that when the 6502 executes a \texttt{BRK} instruction, the return address pushed
+onto the stack is \texttt{PC}$+2$, and so \krusader assembles the \texttt{BRK} opcode as two \$00 bytes
+and an RTI will return to the next instruction. However, the disassembler will show these as consecutive \texttt{BRK} instructions.
 \begin{table}[htb]
 	\centering
 	\begin{tabular}{|c|l|} \hline
-	\textbf{Operations} & \textbf{Mnemonics} \tabularnewline
+	\textbf{Operation} & \textbf{Mnemonics} \tabularnewline
 	\hline
 	Load/Store & \texttt{LDA, LDX, LDY, STA, STX, STY} \tabularnewline\hline
 	Transfer & \texttt{TAX, TXA, TAY, TYA, TSX, TXS} \tabularnewline\hline
@@ -237,7 +252,7 @@ The \texttt{.B} directive (see section \ref{sec:directives} below) should be use
 	Shift & \texttt{ASL, LSR, ROL, ROR} \tabularnewline\hline
 	Jump/Call & \texttt{JMP, JSR, RTS} \tabularnewline\hline
 	Branch & \texttt{BCC, BCS, BEQ, BNE, BMI, BPL, BVC, BVS} \tabularnewline\hline
-	Status Flag & \texttt{CLC, CLD, CLI, CLV, SEC, SED, SEV} \tabularnewline\hline
+	Status Flag & \texttt{CLC, CLD, CLI, CLV, SEC, SED, SEI} \tabularnewline\hline
 	Other & \texttt{BRK, NOP, RTI} \tabularnewline
 	\hline
 	\end{tabular}
@@ -251,7 +266,7 @@ Table \ref{tab:addmodes} shows the argument format for each of the 6502's addres
 In addition, \texttt{\$nnnn} can always be replaced by a label or expression, and
 similarly \texttt{\$nn} so long as the result is a single byte.  (Expressions are introduced in section \ref{sec:expressions} below.)
 A single byte
-may also be represented using \texttt{'c'} for a given printable character
+may also be represented using `\texttt{c}' for a given printable character
 when immediate mode is being used.
 Whenever a word sized argument actually has a high byte of zero and the corresponding byte size 
 addressing mode is legal, the byte size mode will be used.  
@@ -280,21 +295,20 @@ Constants are always hexadecimal.
 
 \subsection{Comments}
 There are two ways to include comments in \krusader source.  Full line comments may be 
-entered by typing a '\texttt{;}' character as the first character in the line, followed
+entered by typing a `\texttt{;}' character as the first character in the line, followed
 by a space\footnote{Strictly speaking the space is not required, but if it is absent,
 the source formatting will be upset.}.  
 Then all line space from the mnemonic field onwards can be used for comment text.
 Alternatively, the remainder of any line after the end of the argument 
 field is also reserved for comments, and in this case, no special character is 
-required to preceed their entry.
+required to precede their entry.
 
 Comment entry is the only place where spaces are treated literally, and examples
 of both kinds of comments are shown in the code snippet below:
 \begin{alltt}
 003 ;      HERE IS A LONG COMMENT
-004        CMP #'Z'+1         HERE IS
-005        BNE LOOP           A SHORT
-006        RTS                ONE
+004        CMP #'Z'+1         HERE ARE
+005        BNE LOOP           SHORT ONES
 \end{alltt}
 
 \subsection{Expressions}
@@ -302,7 +316,7 @@ of both kinds of comments are shown in the code snippet below:
 
 \krusader allows the use of 4 operators in a mnemonic's argument: \texttt{+}, \texttt{-}, 
 \texttt{<} and \texttt{>} for plus, minus, low byte and high byte respectively.  The plus and minus operators take a \emph{constant signed byte} argument only, and unlike other
-places where constants are employed, the argument requires no preceeding \texttt{\$}.
+places where constants are employed, the argument requires no preceding \texttt{\$}.
 The high and low byte operators are used to extract the relevant single byte from a word sized
 constant or label, and have lower precedence than \texttt{+} and \texttt{-}, and so are applied last of all when evaluating the expression.
 
@@ -349,7 +363,7 @@ Each of the available directives is described in table \ref{tab:directives} belo
 															little-endian byte order. Expressions are 
 															allowed, but not forward references.\tabularnewline
 	\texttt{<LABEL> .S  'cc$\ldots$c'} & Store the string literal at the current PC.  The string must
-															be 13 characters or less, and may not containt spaces.\tabularnewline
+															be 13 characters or less, and may not contain spaces.\tabularnewline
 	\hline
 	\end{tabular}
 	\caption{Directives supported by \krusader.  Optional fields are indicated by $<\cdots>$.}
@@ -373,11 +387,12 @@ offending line or symbol will be displayed.
 	\texttt{ERR: ADD} & An illegal addressing mode was encountered.\tabularnewline\hline
 	\texttt{ERR: SYM} & A needed symbol was not found.\tabularnewline\hline
 	\texttt{ERR: OVF} & Too many symbols has lead to a symbol table overflow.\tabularnewline\hline
-	\texttt{ERR: UNK} & An unknown error has occurred.  This should never be seen!\tabularnewline\hline
 	\end{tabular}
 	\caption{\krusader error messages.}
 	\label{tab:errors}
 \end{table}
+
+\pagebreak
 
 There are many reasons why an ``\texttt{ERR: ADD}'' may occur, especially if the offending
 line involves symbols.  For this reason it can be helpful to query the symbols involved
@@ -387,30 +402,31 @@ error, specifically ``\texttt{ERR: SYM}'' if the symbol is undefined, or ``\text
 the symbol tables are full.
 
 \section{65C02 Support}
+\label{sec:65C02}
 
-With version 1.3 of \krusader, support for the 65C02 processor has been included.  
-The 65C02 is an enhanced version of the basic 6502 chip, offerring some extra operations
+With version 1.2 of \krusader, optional support for the 65C02 processor has been included.  
+The 65C02 is an enhanced version of the basic 6502 chip, offering some extra operations
 and addressing modes, and fixing a few problems with the original design.  Although these
 enhancements are all useful, essentially the changes are a case of ``too little, too late'' and
-so frequently programmers choose to stick to pure 6502 code for portability reasons.
+frequently programmers choose to stick to pure 6502 code for portability reasons.
 In addition, 65C02s from various manufacturers have slightly different command sets, thus
 adding to the confusion.
 However, since the 65C02 is the CPU in nearly all Replica 1 computers, it makes good sense
 for \krusader to support this chip, and this section describes this support.
-Nevertheless, no 65C02 operations are used in the \krusader code itself.
+Nevertheless, no 65C02 specific operations are used in the \krusader code itself.
 
 \subsection{Additional Mnemonics}
 
-The 10 65C02 instructions supported by \krusader are listed in table \ref{tab:65C02mnemonics}.
+The ten 65C02 instructions supported by \krusader are listed in table \ref{tab:65C02mnemonics}.
 Each of these is valid on all versions of the 65C02, and also on the 65C816.  No other
 instructions are supported -- specifically the single bit instructions \texttt{BBR, BBS, RMB, SMB}
-found on the Rockwell and WDC versions of the 65C02, and the \texttt{STP, WAI} instructions
-found on the Rockwell 65C02 only.
+found on the Rockwell and WDC versions of the 65C02, and the \texttt{STP} and \texttt{WAI} instructions
+found on the Rockwell 65C02 only are not recognised.
 
 \begin{table}[htb]
 	\centering
 	\begin{tabular}{|c|l|} \hline
-	\textbf{Operations} & \textbf{Mnemonics} \tabularnewline
+	\textbf{Operation} & \textbf{Mnemonics} \tabularnewline
 	\hline
 	Load/Store & \texttt{STZ} \tabularnewline\hline
 	Stack & \texttt{PHX, PLX, PHY, PLY} \tabularnewline\hline
@@ -419,34 +435,321 @@ found on the Rockwell 65C02 only.
 	Branch & \texttt{BRA} \tabularnewline
 	\hline
 	\end{tabular}
-	\caption{Supported 65C02 mnenomics.}
+	\caption{Additional mnenomics supported by the 65C02 version of \krusader.}
 	\label{tab:65C02mnemonics}
 \end{table}
 
 \subsection{Additional Addressing Modes}
 
-The 65C02 introduced two completely new addressing modes -- zero page indirect and 
+The 65C02 introduced two new addressing modes -- zero page indirect and 
 absolute indexed indirect.  The \krusader source code syntax for these modes is 
-shown in table \ref{tab:addmodes65C02}.
+shown below:
 
+\begin{itemize}
+	\item Zero Page Indirect -- \texttt{(\$nn)}
+	\item Absolute Indexed Indirect -- \texttt{(\$nnnn,X)}
+\end{itemize}
+
+\section{The Mini-Monitor}
+\label{sec:minimonitor}
+
+The 8K of Replica 1 ROM, with Integer BASIC, the Monitor, and \krusader, leaves just
+enough space for a simple interactive debugger, and this section describes the debugger included
+with the ROM version of \krusader. By making the \texttt{IRQBRK} vector at \texttt{\$FFFE,F} point to the
+\texttt{DEBUG} routine at address \texttt{\$FE19} (\texttt{\$FE0A} for the 65C02 version), execution
+of a \texttt{BRK} passes control to the mini-monitor, and the registers and next instruction are displayed as follows:
+\begin{alltt}
+A-41 X-FF Y-07 S-FD P-23 CZ
+0306   20 EF FF    JSR   $FFEF
+-
+\end{alltt}
+The P register is shown both as a value, and as a string from “NVBDIZC” indicating which flags
+are set. (In the above example, the zero flag (Z) and the carry flag (C) are set.) The \texttt{-} prompt
+indicates that the mini-monitor is waiting for a command. Valid commands are shown in table
+7, and are used to change the register values, set the next instruction location, or drop into the
+Apple 1 monitor.
 \begin{table}[htb]
 	\centering
-	\begin{tabular}{|l|l|} \hline
-	\textbf{Addressing Mode} & \textbf{Format} \tabularnewline\hline
-	Zero Page Indirect & \texttt{(\$nn)}  		\tabularnewline\hline
-	Absolute Indexed Indirect & \texttt{(\$nnnn,X)} \tabularnewline
-	\hline
+	\begin{tabular}{|c|p{10cm}|}\hline
+		\textbf{Command} & \textbf{Action}\tabularnewline\hline
+		\replica{Ann} & Put the value \texttt{\$nn} into the A register.\tabularnewline
+		\replica{Xnn} & Put the value \texttt{\$nn} into the X register.\tabularnewline
+		\replica{Ynn} & Put the value \texttt{\$nn} into the Y register.\tabularnewline
+		\replica{Snn} & Put the value \texttt{\$nn} into the S register.\tabularnewline
+		\replica{Pnn} & Put the value \texttt{\$nn} into the P register.\tabularnewline
+		\replica{Lnn} & Set the low byte of the PC for the next instruction to\newline
+				be executed to the value \texttt{\$nn}.\tabularnewline
+		\replica{Hnn} & Set the high byte of the PC for the next instruction to\newline
+				be executed to the value \texttt{\$nn}.\tabularnewline
+		\replica{R} & Resume execution at the currently displayed instruction.\tabularnewline
+		\replica{\$} & Enter the Apple 1 monitor.\tabularnewline
+		\replica{!} & Enter an Apple 1 monitor command.\tabularnewline
+		\replica{T} & Trace execution step by step (6502 version only).\tabularnewline
+		\hline
 	\end{tabular}
-	\caption{Source code syntax for the additional 65C02 addressing modes.}
-	\label{tab:addmodes65C02}
+	\caption{Mini-monitor commands.}
+\label{tab:minimoncmds}
 \end{table}
+
+To return to the mini-monitor from the Apple 1 monitor, type \texttt{FE23R} (or \texttt{FE0AR} if you are
+running the 65C02 version). Another useful address to remember is the disassembly routine at
+\texttt{\$FAD0} (\texttt{\$FAF8} for the 65C02 version), but bear in mind that using this routine involves changing
+the stored PC value at locations \texttt{\$F5} and \texttt{\$F6}, and this must be restored, using either the monitor
+or the mini-monitor, if you wish to resume the program being monitored.
+
+\subsection{Sample Mini-Monitor Session}
+
+This section gives a short example of a mini-monitor session. In order to work through this
+example, first start the assembler, and enter the following short program that includes a \texttt{BRK}
+instruction.
+
+\begin{alltt}
+F000R
+F000: A9
+KRUSADER 6502 BY KEN WESSEN
+? N
+000 \tab{}LDA #’A’
+001 \tab{}JSR $FFEF
+002 \tab{}SEC
+003 \tab{}BRK
+004 \tab{}JSR $FFEF
+005 \tab{}RTS
+006
+?
+\end{alltt}
+Assemble it and examine the resulting code.
+\begin{alltt}
+? A
+0300-030B
+? D $300
+0300   A9 41       LDA   #$41
+0302   20 EF FF    JSR   $FFEF
+0305   38          SEC
+0306   00          BRK
+0307   00          BRK
+0308   20 EF FF    JSR   $FFEF
+030B   60          RTS
+...
+\end{alltt}
+When this program is run, it should print A, set the carry flag (C), and then drop into the mini-monitor.
+\begin{alltt}
+? R $300
+A
+-
+A-41 X-FF Y-07 S-FD P-21 BC
+0308   20 EF FF    JSR   $FFEF
+-
+\end{alltt}
+Use the \replica{A} command to change the value in register \texttt{A} from 41 to 42, confirm the change by checking
+the new register display, and then resume the program with the \replica{R} command. The program will
+then print a \replica{B}, corresponding to the new value in register \texttt{A}, and return to the assembler shell as
+normal.
+\begin{alltt}
+-A42
+A-42 X-FF Y-07 S-FD P-21 BC
+0308   20 EF FF    JSR   $FFEF
+-R
+B
+?
+\end{alltt}
+Now let’s enter a new program, this time involving a subroutine call.
+\begin{alltt}
+? N
+000 \tab{}LDA #’A’
+001 \tab{}JSR SUB
+002 \tab{}JSR $FFEF
+003 \tab{}RTS
+004
+005 SUB \tab{}.M
+006 \tab{}BRK
+007 \tab{}LDA #’Z’
+008 \tab{}RTS
+009
+?
+\end{alltt}
+Assemble it, examine the resulting code, and run. It will break into the mini-monitor on entry to
+the subroutine \texttt{SUB}.
+\begin{alltt}
+? A
+0300
+SUB    005 0309-030C
+? D $300
+0300   A9 41       LDA   #$41
+0302   20 09 03    JSR   $0309
+0305   20 EF FF    JSR   $FFEF
+0308   60          RTS
+0309   00          BRK
+030A   00          BRK
+030B   A9 5A       LDA   #$5A
+030D   60          RTS
+...
+? R $300
+
+A-41 X-FF Y-07 S-FB P-24 B
+030B   A9 5A       LDA   #$5A
+-
+\end{alltt}
+When in the mini-monitor, unroll the stack by adjusting the value in \texttt{S}, and set the PC to \texttt{\$0305}.
+\begin{alltt}
+-SFD
+A-41 X-FF Y-07 S-FD P-20 B
+030B   A9 5A       LDA   #$5A
+-L05
+A-41 X-FF Y-07 S-FD P-20 B
+0305   20 EF FF    JSR   $FFEF
+-
+\end{alltt}
+Now resume, and \texttt{A} will be printed rather than \texttt{Z} since lines \replica{007} and \replica{008} were never executed.
+Since we also adjusted the stack pointer, the \texttt{RTS} on line \replica{003} will return control to the assembler.
+\begin{alltt}
+-R
+A
+?
+\end{alltt}
+
+\subsection{Tracing Assembled Code}
+
+The 6502 version of \krusader left just enough space free in the Replica 1 ROM for implementing
+a single step trace function in the mini-monitor. In the absence of size constraints, this
+function can be added to the 65C02 version as well, but it would need a little bit of extra code to
+properly handle the \texttt{BRA} instruction and the absolute indirect addressing mode.
+
+To see how the trace function operates, enter the following short program:
+\begin{alltt}
+? N
+000 \tab{}BRK
+001 \tab{}PHP
+002 \tab{}SEC
+003 \tab{}LDX #$0
+004 \tab{}DEX
+005 \tab{}PLP
+006 \tab{}RTS
+007
+?
+\end{alltt}
+Assemble and run, and it will drop into the monitor right away.
+\begin{alltt}
+? A
+0300-0308
+? R $300
+
+A-0D X-01 Y-07 S-FD P-30 B
+0302   08          PHP
+-
+\end{alltt}
+Now we can use the \replica{T} command to step through the code. After one step, the current value of the
+status register (P = 30) will be pushed onto the stack, and the stack pointer will decrease by 1.
+\begin{alltt}
+-T
+A-0D X-01 Y-07 S-FC P-30 B
+0303   38          SEC
+-
+\end{alltt}
+As we step through, we can watch the changes in the status flags in response to the execution of
+each command. Follow the below to see the carry, zero and negative flags being set.
+\begin{alltt}
+-T
+A-0D X-01 Y-07 S-FC P-31 BC
+0304   A2 00       LDX #$00
+-T
+A-0D X-00 Y-07 S-FC P-33 BZC
+0306   CA          DEX
+-T
+A-FF X-FF Y-07 S-FC P-B1 NBC
+0307   28          PLP
+-
+\end{alltt}
+After one last step, the status register will be restored to its earlier value, so the flags will return to
+oﬀ, and the stack pointer increased by 1. Then, as usual, the \texttt{R} command will continue execution
+of the program, and so the \texttt{RTS} command will return control to the assembler shell.
+\begin{alltt}
+-T
+A-0D X-FF Y-07 S-FD P-30 B
+0308   60          RTS
+-R
+?
+\end{alltt}
+
+\subsection{Using the Apple 1 monitor}
+
+The mini-monitor includes no commands for examining or altering memory. Rather, this functionality
+is provided via the standard Apple 1 monitor by using the \replica{!} command to submit instructions to the
+monitor as shown in the following example.
+\begin{alltt}
+A-D2 X-00 Y-01 S-FD P-33 BZC
+0002   00          BRK
+-!
+1000.101F
+1000: 00 00 00 00 00 00 00 00
+1008: 00 00 00 00 00 00 00 00
+1010: 00 00 00 00 00 00 00 00
+1018: 00 00 00 00 00 00 00 00
+A-D2 X-00 Y-01 S-FD P-33 BZC
+0002   00          BRK
+-!
+1000:1 2 3 4
+
+1000: 00
+A-D2 X-00 Y-01 S-FD P-33 BZC
+0002   00          BRK
+-!
+1000.1007
+
+1000: 01 02 03 04 00 00 00 00
+A-D2 X-00 Y-01 S-FD P-33 BZC
+0002   00          BRK
+-
+\end{alltt}
+
+\pagebreak
 
 \section{Low Level Information}
 
-This section is concerned with some of the low-level information about how \krusader works,
+This section presents some low-level information about how \krusader works,
 and is not required for normal use of the assembler.  However, there are many situations
 where this information is quite important for managing source and machine code, and correcting
-errors.
+errors. The most important memory locations are shown in table \ref{tab:entrypoints}, and discussed in the following sections.
+
+\begin{table}[htb]
+	\centering
+	\begin{tabular}{|p{2.8cm}|p{4.7cm}|p{8.5cm}|}
+		\hline
+		\textbf{Address} & \textbf{Function} & \textbf{Zero Page Dependencies} \\
+		\hline
+		\texttt{\$7100(\$F000)} \newline
+		\texttt{\$711C(\$F01C)} & 
+		\raggedright Assembler entry Assembler re-entry (shell) & 
+		\texttt{\$F8} -- High byte of assembled code storage area \newline
+		\texttt{\$F9} -- High byte of local/global table boundary \newline
+		\texttt{\$FE,\$FF} -- Address of source code storage area \newline
+		\texttt{\$E9,\$EA} -- Global symbol table address \newline
+		\texttt{\$EB} -- Number of global symbols \\
+		\hline
+		\texttt{\$7304(\$F204)} & 
+		\raggedright Move memory (non\hbox{-}overlapping) & 
+		\texttt{\$50,\$51} -- Source location \newline
+		\texttt{\$52,\$53} -- Destination \newline
+		\texttt{\$54,\$55} -- Bytes to move \\
+		\hline
+		\texttt{\$FE14}\ensuremath{^{*}} \newline
+		\texttt{\$FE1E}\ensuremath{^{*}} & 
+		\raggedright Mini-monitor entry \newline
+		Mini-monitor re-entry (ROM version only) & 
+		\texttt{\$F0-\$F4} -- Register storage (S,P,Y,X and A) \newline
+		\texttt{\$F5, \$F6} -- Address of next instruction \newline
+		\texttt{\$0F-\$11} -- Input buffer \newline
+		\texttt{\$E0-\$E8} -- Code buffer for trace function \\
+		\hline
+		\texttt{\$7BCA(\$FACA)}\ensuremath{^{*}} & 
+		Disassembler & 
+		\texttt{\$F5,\$F6} -- Address to disassemble from \\
+		\hline
+	\end{tabular}
+	\caption{Important function entry points and related memory locations. \ensuremath{^{*}}The mini-monitor addresses are \texttt{\$FE03} and \texttt{\$FE16} in the 65C02 version, and the disassembler address is \texttt{\$FAEA}.}
+	\label{tab:entrypoints}
+\end{table}
+
+\setstretch{1.08}  % Slightly increases line spacing
 
 \subsection{Memory Map}
 \label{sec:memory}
@@ -458,7 +761,7 @@ are shown in figure \ref{fig:memmap}.  The local symbol and forward reference ta
 fixed 1K of space, with 256 bytes taken up by the locals, and the remainder for the forward references.
 The global symbol table grows downward to a maximum of 2K (corresponding to 256 symbols).  
 The two most important source locations have both been mentioned already, and are \texttt{\$7100}(\texttt{\$F000}) 
-for initial program entry, and \texttt{\$711A}(\texttt{\$F01A}) for returning to the shell.
+for initial program entry, and \texttt{\$711C}(\texttt{\$F01C}) for returning to the shell.
 
 \begin{figure}[tb]
 \centering
@@ -474,21 +777,28 @@ After initialisation, these values are stored in zero page locations \texttt{\$F
 \label{fig:memmap}
 \end{figure}
 
+
 \krusader also
 uses a number of zero page locations, but mostly as an input buffer and during assembly.  The only
-locations that must be maintained are \texttt{\$F8, \$F9, \$FE} and \texttt{\$FF}.  These hold
+locations that absolutely must be maintained are \texttt{\$F8, \$F9, \$FE} and \texttt{\$FF}.  These hold
 the high byte of the default assembled code storage location, the high byte of the local/global
 symbol table boundary, and the low and high bytes of the source code storage location respectively
 (See figure \ref{fig:memmap} for the appropriate values).
-Replica 1 users need to beware of BASIC because it may overwrite these four values, so they need to 
+Additionally, locations \texttt{\$E9, \$EA} and \texttt{\$EB} are needed if the shell is to have access to the global symbol
+table for various commands (see table \ref{tab:shellcmds}), and locations \texttt{\$0F, \$10, \$11}, \texttt{\$E0} to \texttt{\$E8},
+and \texttt{\$F0} to \texttt{\$F6} are used by the mini-monitor. If you wish to use all the features of
+\krusader while developing assembly language programs, it is wise to avoid using these locations in your programs.
+Replica 1 users need to beware of Apple 1 BASIC because it may overwrite several of these values, so they need to 
 be restored before returning to the \krusader shell\footnote{The \replica{P} command is useful 
 for restoring the default values to these zero page memory locations.}.  
+
+\setstretch{1.0}  % Restore line spacing
 
 \subsubsection{Changing Default Memory Locations}
 \label{sec:mem_defaults}
 For the RAM based version of \krusader, the default values can be altered by changing the values at memory locations \texttt{\$7101}, \texttt{\$7105} and \texttt{\$7109} in the assembler code.
 For the ROM based version, the default values can only be altered after the program has been run, and the alternative values must be entered directly into the zero page locations mentioned above, before resuming \krusader at location 
-\texttt{\$F01A}\footnote{The \replica{P} command will overwrite any values entered in this way.}.
+\texttt{\$F01C}\footnote{The \replica{P} command will overwrite any values entered in this way.}.
 
 \subsection{Source Tokenisation Scheme}
 \label{sec:token}
@@ -514,11 +824,15 @@ as if you had typed it in as normal.  However, syntax and formatting errors in t
 since the error handling is designed around the restrictions placed on source input in the
 usual manner.
 
+Unfortunately the binary source tokenisation is incompatible between the 6502 and 65C02 versions of the
+assembler due to differences in the mnemonic indices and directive encoding. The `-C’ command line option
+may be used with the tokeniser program to specify the 65C02 version binary format.
+
 One useful thing to keep in mind is the \replica{N} command simply clears the source program
 from memory by putting a \texttt{\$00} as the very first byte of the source storage location.
 So if \replica{N} is typed accidentally, the source can be easily restored.  To do this manually, simply enter
 the monitor using \replica{\$}, and change this initial byte to either \texttt{\$01} if there was no
-label, or the first byte of the label, and then resume \krusader as normal with \texttt{711AR(F01AR)}.
+label, or the first byte of the label, and then resume \krusader as normal with \texttt{711CR(F01CR)}.
 This process is automated by the \replica{P} command.
 You should note however that there is no way to recover source lines deleted with the
 \replica{X} or \replica{E} commands since the memory is immediately overwritten.
@@ -534,19 +848,19 @@ the size of memory to move -- \replica{sizeL} and \replica{sizeH}.
 source or watching the output of the \replica{A} command for assembled code.)  Then drop into the 
 monitor using the \replica{\$} command, and enter:
 \replica{50: srcL srcH destL destH sizeL sizeH}
-to set the parameters, and \replica{7322R} (\replica{F222R}) to do the move.
+to set the parameters, and \replica{7304R} (\replica{F204R}) to do the move.
 
 \subsection{Testing}
 
 \krusader comes with a number of sample programs, both in binary and hex dump formats,
 and these are useful for verifying its correct operation.  The most important sample in this regard
 is \texttt{TestSuite.asm}, which contains a number of modules for testing the
-assembler.  (For the 65C02 version, there is instead the pair of source files
+assembler.  (For the 65C02 version, there is the pair of source files:
 \texttt{TestSuiteC.asm} for the pure 6502 tests, and \texttt{TestSuite65C02.asm} for tests of the 65C02 extensions.)
 The first test of course is that the source assembles without error, 
 then \replica{R MAIN} will cause the program to verify its own assembled code and report any errors.
 This test suite covers all the 6502 instructions, using all their addressing 
-modes and a couple of different formats for arguments where relevant, as well as 
+modes and various formats for arguments where relevant, as well as 
 each of the available directives.  
 In addition, both forward referencing and the various kinds of expressions 
 supported by \krusader are tested -- both alone and in combination with various addressing modes.  A successful run of this suite of tests is a very good indication that \krusader
@@ -568,6 +882,7 @@ can be loaded directly into the zero page address \texttt{\$FF}.
 %with the major version number at \replica{7FFE} (\replica{FEFE}), and the minor version number
 %at \replica{7EFF} (\replica{FEFF}).
 
+\pagebreak
 	
 \section{Release History}
 \label{sec:history}
@@ -575,36 +890,38 @@ can be loaded directly into the zero page address \texttt{\$FF}.
 \begin{itemize}
 	\item \krusader 1.0 (May 2006)
 		\begin{itemize}
-			\item First version released
-			\item Target CPU is 6502 only
-			\item Buggy
+			\item First version released.
+			\item Target CPU is 6502 only.
 		\end{itemize}
 	\item \krusader 1.1 (July 2006)
 		\begin{itemize}
-			\item Fully tested version
-			\item Comes with code for a thorough automated testing of itself
+			\item Fully tested version - several bug fixes over version 1.0.
+			\item Comes with code for a thorough automated testing of itself.
 			\item Various enhancements over version 1, most notably:
 			\begin{itemize}
-				\item Forward references can cross module boundaries
-				\item Symbol redefinition is reported as an error
-				\item comment only lines
-				\item Approximately 20\% faster assembly
+				\item Forward references can cross module boundaries.
+				\item Symbol redefinition is reported as an error.
+				\item Comment only lines.
+				\item Approximately 20\% faster assembly.
 			\end{itemize}
-			\item This version was added to the Replica 1 SE ROM
+			\item This version was added to the Replica 1 SE ROM.
 		\end{itemize}
 	\item \krusader 1.2 (August 2006)
 		\begin{itemize}
-			\item Functionally equivalent to version 1.1
 			\item Fixes an obscure bug in version 1.1 that prevented assembly of \texttt{JMP}
-				or \texttt{JSR} commands targetting page zero
-			\item More compact implementation in places means implemented in approximately 100 fewer bytes than version 1.1
-			\item Recommended for people who wish to extend Krusader by adding custom commands etc
+				or \texttt{JSR} commands targeting page zero
+			\item Improved syntax checking.
+			\item More compact implementation saves more than 200 bytes over version 1.1.
+			\item Extra space used to implement a mini-monitor for interactive debugging.
+			\item Also available is KRUSADER 65C02, a version that supports 65C02
+				commands in both the assembler and disassembler.
+			\item Still fits inside the 3840 free bytes of the Replica 1 ROM!
 		\end{itemize}
-	\item \krusader 1.3 (August 2006)
+	\item \krusader 1.3 (December 2007)
 		\begin{itemize}
-			\item 65C02 commands fully supported by both the assembler and disassembler
-			\item Better syntax checking than earlier versions
-			\item Still fits inside the 3980 free bytes of the Replica 1 ROM!
+			\item Made source and disassembly listings continuous until key pressed.
+			\item  Added ‘!’ command to the shell and mini-monitor.
+			\item Bundled with the Krusader Toolkit\footnote{\url{http://school.anhb.uwa.edu.au/personalpages/kwessen/apple1/ktk.zip}} -- an integrated editor, terminal and emulator for the Replica 1.
 		\end{itemize}
 \end{itemize}
 

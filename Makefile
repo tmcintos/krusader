@@ -7,11 +7,18 @@ ROMS=\
 	ROM/krusader.6502.bin \
 	ROM/krusader.65C02.bin \
 
-all: $(ROMS)
-
+all: $(ROMS) doc/krusader.pdf
 
 clean:
-	$(RM) ROM/*.bin ROM/*.map ROM/*.hex ROM/*.upload ROM/*.lst ROM/*.lbl ROM/*.def ROM/*.h
+	$(RM) ROM/*.bin ROM/*.map ROM/*.hex ROM/*.upload ROM/*.lst ROM/*.lbl ROM/*.def ROM/*.h doc/krusader.*
+
+# Note:
+# - commit updated doc/krusader.pdf separately after modifying doc/Assembler.tex to ensure reproducible build!
+# - must run pdflatex twice to resolve references
+doc/krusader.pdf: doc/Assembler.tex
+	cd doc && export SOURCE_DATE_EPOCH=$$(git log -1 --format=%ct Assembler.tex) && \
+		pdflatex -jobname=krusader Assembler.tex >krusader.err && \
+		pdflatex -jobname=krusader Assembler.tex >krusader.err
 
 ROM/krusader.%.bin: krusader.%.asm
 	64tass -q -i -b $< -o $@ -L ROM/krusader.$*.lst --vice-labels -l ROM/krusader.$*.lbl --simple-labels -l ROM/krusader.$*.def --map=ROM/krusader.$*.map
