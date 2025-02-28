@@ -2828,7 +2828,20 @@ GETCH   		; Get a character from the keyboard.
 	BEQ GETCH
 	.endif
 	RTS
-	
+
+; ensure that documented entry points are maintained
+.if INROM
+.cerror SHELL   != $F01C, "SHELL entry point changed!""
+.cerror MOVEDN  != $F204, "MOVEDN entry point changed!"
+.cerror DEBUG   != $FE14, "DEBUG entry point changed!"
+.cerror XBRK    != $FE1E, "XBRK entry point changed!"
+.cerror DSMBL   != $FACA, "DSMBL entry point changed!"
+.else
+.cerror SHELL   != $711C, "SHELL entry point changed!"
+.cerror MOVEDN  != $7304, "MOVEDN entry point changed!"
+.cerror DSMBL   != $7BCA, "DSMBL entry point changed!"
+.endif
+
 ;-------------------------------------------------------------------------
 ;
 ;  The WOZ Monitor for the Apple 1
