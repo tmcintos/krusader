@@ -15,10 +15,11 @@ clean:
 # Note:
 # - commit updated doc/krusader.pdf separately after modifying doc/Assembler.tex to ensure reproducible build!
 # - must run pdflatex twice to resolve references
-doc/krusader.pdf: doc/Assembler.tex
+doc/krusader.pdf: doc/Assembler.tex mkgitinfo.sh
+	./mkgitinfo.sh
 	cd doc && export SOURCE_DATE_EPOCH=$$(git log -1 --format=%ct Assembler.tex) && \
-		pdflatex -jobname=krusader Assembler.tex >krusader.err && \
-		pdflatex -jobname=krusader Assembler.tex >krusader.err
+		pdflatex -jobname=krusader Assembler.tex >krusader.err </dev/null && \
+		pdflatex -jobname=krusader Assembler.tex >krusader.err </dev/null
 
 ROM/krusader.%.bin: krusader.%.asm
 	64tass -q -i -b $< -o $@ -L ROM/krusader.$*.lst --vice-labels -l ROM/krusader.$*.lbl --simple-labels -l ROM/krusader.$*.def --map=ROM/krusader.$*.map

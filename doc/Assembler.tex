@@ -12,6 +12,7 @@
 \documentclass[12pt]{article}
 
 \usepackage[margin=2cm]{geometry}
+\usepackage[mark,markifdirty,markifdraft,raisemark=0.95\paperheight]{gitinfo2} % also requires xstring package
 \usepackage{indentfirst}
 \usepackage[pdftex,colorlinks,linkcolor=black,urlcolor=blue]{hyperref}
 \usepackage{afterpage}
@@ -41,6 +42,12 @@
 } 
 
 %\setlength{\extrarowheight}{2mm}
+
+% customize gitinfo2 watermark format
+\renewcommand{\gitMark}{
+\gitBranch\,@\,\gitAbbrevHash{} \textbullet{} \gitReln{} \\
+\gitAuthorEmail % repurposed for REPOURL
+}
 
 \begin{document}
 
