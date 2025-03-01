@@ -20,6 +20,19 @@ doc/krusader.pdf: doc/Assembler.tex mkgitinfo.sh
 	cd doc && export SOURCE_DATE_EPOCH=$$(git log -1 --format=%ct Assembler.tex) && \
 		pdflatex -jobname=krusader Assembler.tex >krusader.err </dev/null && \
 		pdflatex -jobname=krusader Assembler.tex >krusader.err </dev/null
+	-MOD_DATE=$$(git log -1 --format="%cd" --date=format:'D:%Y%m%d%H%M%S' -- doc/Assembler.tex) && \
+    gs -sDEVICE=pdfwrite \
+       -dCompatibilityLevel=1.5 \
+       -dPDFSETTINGS=/screen \
+       -dDownsampleGrayImages=true -dGrayImageResolution=100 \
+       -dDownsampleMonoImages=true -dMonoImageResolution=300 \
+       -dCompressFonts=true -dSubsetFonts=true -dFastWebView=true \
+       -dNOPAUSE -dBATCH -dQUIET \
+       -dPreserveHalftoneInfo=false -dPrinted=false -dConvertCMYKImagesToRGB=false \
+       -dEmbedAllFonts=true -dRemoveMetadata \
+       -sOutputFile=doc/krusader.optimized.pdf \
+       -c "<< /Metadata null /CreationDate ($$MOD_DATE) /ModDate ($$MOD_DATE) >> setdistillerparams" \
+       -f doc/krusader.pdf < /dev/null > doc/krusader.gs.log 2>&1
 
 ROM/krusader.%.bin: krusader.%.asm
 	64tass -q -i -b $< -o $@ -L ROM/krusader.$*.lst --vice-labels -l ROM/krusader.$*.lbl --simple-labels -l ROM/krusader.$*.def --map=ROM/krusader.$*.map
