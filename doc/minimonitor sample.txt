@@ -1,0 +1,127 @@
+F000R
+
+F000: A9
+KRUSADER 1.2 BY KEN WESSEN
+? N
+000        LDA #$41
+001        BRK
+002        JSR $FFEF
+003        RTS
+004 
+? L
+000        LDA #$41
+001        BRK 
+002        JSR $FFEF
+003        RTS 
+? A
+0300-0307
+? D $300
+0300   A9 41       LDA   #$41
+0302   00          BRK   
+0303   00          BRK   
+0304   20 EF FF    JSR   $FFEF
+0307   60          RTS   
+...
+? R $300
+
+A-41 X-01 Y-07 S-73 P-30 B
+0304   20 EF FF    JSR   $FFEF
+-RA
+? R $300
+
+A-41 X-01 Y-07 S-73 P-30 B
+0304   20 EF FF    JSR   $FFEF
+-A55
+A-55 X-01 Y-07 S-73 P-30 B
+0304   20 EF FF    JSR   $FFEF
+-RU
+? N
+000        LDA #$41
+001        JSR SUB
+002        JSR $FFEF
+003        RTS
+004 
+005 SUB    .M
+006        BRK
+007        LDA #$55
+008        RTS
+009 
+? A
+0300
+SUB    005 0309-030D
+? R $300
+
+A-41 X-01 Y-07 S-71 P-30 B
+030B   A9 55       LDA   #$55
+-RU
+? R $300
+
+A-41 X-01 Y-07 S-71 P-30 B
+030B   A9 55       LDA   #$55
+-L05
+A-41 X-01 Y-07 S-71 P-30 B
+0305   20 EF FF    JSR   $FFEF
+-RAA
+? D $300
+0300   A9 41       LDA   #$41
+0302   20 09 03    JSR   $0309
+0305   20 EF FF    JSR   $FFEF
+0308   60          RTS   
+0309   00          BRK   
+030A   00          BRK   
+030B   A9 55       LDA   #$55
+030D   60          RTS   
+...
+? R $300
+
+A-41 X-01 Y-07 S-71 P-30 B
+030B   A9 55       LDA   #$55
+-L05
+A-41 X-01 Y-07 S-71 P-30 B
+0305   20 EF FF    JSR   $FFEF
+-S73
+A-41 X-01 Y-07 S-73 P-30 B
+0305   20 EF FF    JSR   $FFEF
+-RA
+? N
+000        BRK
+001        PHP
+002        SEC
+003        LDA #$0
+004        LDA #$FF
+005        PLP
+006        RTS
+007
+? A
+0300-0309
+? D $300
+0300   00          BRK   
+0301   00          BRK   
+0302   08          PHP   
+0303   38          SEC   
+0304   A9 00       LDA   #$00
+0306   A9 FF       LDA   #$FF
+0308   28          PLP   
+0309   60          RTS   
+...
+? R $300
+
+A-0D X-01 Y-07 S-73 P-32 BZ
+0302   08          PHP   
+-T
+A-0D X-01 Y-07 S-72 P-32 BZ
+0303   38          SEC   
+-T
+A-0D X-01 Y-07 S-72 P-33 BZC
+0304   A9 00       LDA   #$00
+-T
+A-00 X-01 Y-07 S-72 P-33 BZC
+0306   A9 FF       LDA   #$FF
+-T
+A-FF X-01 Y-07 S-72 P-B1 NBC
+0308   28          PLP   
+-T
+A-FF X-01 Y-07 S-73 P-32 BZ
+0309   60          RTS   
+-R
+? $
