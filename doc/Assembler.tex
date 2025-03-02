@@ -748,10 +748,10 @@ errors. The most important memory locations are shown in table \ref{tab:entrypoi
 		\texttt{\$52,\$53} -- Destination \newline
 		\texttt{\$54,\$55} -- Bytes to move \\
 		\hline
-		\texttt{\$FE14}\ensuremath{^{*}} \newline
-		\texttt{\$FE1E}\ensuremath{^{*}} & 
+		\texttt{\$FE14}\ensuremath{^{*\dagger}} \newline
+		\texttt{\$FE1E}\ensuremath{^{*\dagger}} & 
 		\raggedright Mini-monitor entry \newline
-		Mini-monitor re-entry (ROM version only) & 
+		Mini-monitor re-entry & 
 		\texttt{\$F0-\$F4} -- Register storage (S,P,Y,X and A) \newline
 		\texttt{\$F5, \$F6} -- Address of next instruction \newline
 		\texttt{\$0F-\$11} -- Input buffer \newline
@@ -761,9 +761,20 @@ errors. The most important memory locations are shown in table \ref{tab:entrypoi
 		Disassembler & 
 		\texttt{\$F5,\$F6} -- Address to disassemble from \\
 		\hline
+		\texttt{\$FEC9}\ensuremath{^{\dagger}} \newline
+		\texttt{\$FEF5}\ensuremath{^{\dagger}} \newline
+		\texttt{\$FEF0}\ensuremath{^{\dagger}} &
+		Get character \newline
+		Get character (no echo) \newline
+		Print newline &
+		N/A -- Input character returned in \texttt{A} register \\
+		\hline
 	\end{tabular}
 	\caption{Important function entry points and related memory locations.}
-	\caption*{\ensuremath{^{*}}The mini-monitor addresses are \texttt{\$FE03} and \texttt{\$FE16} in the 65C02 version, and the disassembler address is \texttt{\$FAEA}.}
+	\caption*{
+	\ensuremath{^{*}} In the 65C02 version, the mini-monitor addresses are \texttt{\$FE03} and \texttt{\$FE16}, and the disassembler address is \texttt{\$7BEA(\$FAEA)}. \\
+	\ensuremath{^{\dagger}} ROM version only.
+	}
 	\label{tab:entrypoints}
 \end{table}
 

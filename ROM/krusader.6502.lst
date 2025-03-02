@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass -q -i -b -o ROM/krusader.6502.bin -L ROM/krusader.6502.lst --vice-labels -l ROM/krusader.6502.lbl --simple-labels -l ROM/krusader.6502.def --map=ROM/krusader.6502.map krusader.6502.asm
-; Tue Feb 25 19:37:54 2025
+; Sat Mar  1 22:37:10 2025
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -146,11 +146,11 @@
 .f024	a2 0f		ldx #$0f		LDX #ARGS
 .f026	86 58		stx $58			STX FRFLAG	; set flags in SHELL
 .f028	86 59		stx $59			STX ERFLAG
-.f02a	20 e5 fe	jsr $fee5		JSR CRLF
+.f02a	20 f0 fe	jsr $fef0		JSR CRLF
 .f02d	a9 3f		lda #$3f		LDA #PROMPT
 .f02f	20 ef ff	jsr $ffef		JSR OUTCH	; prompt
-.f032	20 e0 fe	jsr $fee0		JSR OUTSP	; can drop this if desperate for 3 more bytes :-)
-.f035	20 ea fe	jsr $feea	_KEY	JSR GETCH
+.f032	20 eb fe	jsr $feeb		JSR OUTSP	; can drop this if desperate for 3 more bytes :-)
+.f035	20 f5 fe	jsr $fef5	_KEY	JSR GETCH
 .f038	c9 08		cmp #$08		CMP #BS
 .f03a	f0 e0		beq $f01c		BEQ SHELL	; start again
 .f03c	c9 0d		cmp #$0d		CMP #CR
@@ -204,14 +204,14 @@
 .f091					VALUE
 .f091	20 ab f0	jsr $f0ab		JSR ADDARG
 .f094	f0 cc		beq $f062		BEQ SHLERR
-.f096	20 e5 fe	jsr $fee5		JSR CRLF
+.f096	20 f0 fe	jsr $fef0		JSR CRLF
 .f099	a5 3f		lda $3f			LDA LVALH
 .f09b	a6 3e		ldx $3e			LDX LVALL
 .f09d	4c 67 fb	jmp $fb67		JMP PRNTAX
 .f0a0					RUN
 .f0a0	20 ab f0	jsr $f0ab		JSR ADDARG
 .f0a3	f0 bd		beq $f062		BEQ SHLERR
-.f0a5	20 e5 fe	jsr $fee5		JSR CRLF
+.f0a5	20 f0 fe	jsr $fef0		JSR CRLF
 .f0a8	6c 3e 00	jmp ($003e)		JMP (LVALL)	; jump to the address
 .f0ab					ADDARG
 .f0ab	a2 02		ldx #$02		LDX #$02
@@ -268,13 +268,13 @@
 .f104	60		rts		_RET	RTS
 .f105					MEM
 .f105	20 4f f2	jsr $f24f		JSR TOEND	; set CURLNL,H to the end
-.f108	20 e5 fe	jsr $fee5		JSR CRLF
+.f108	20 f0 fe	jsr $fef0		JSR CRLF
 .f10b	a2 04		ldx #$04		LDX #$04
 .f10d	b5 fb		lda $fb,x	_LOOP	LDA CURLNL-1,X
 .f10f	20 dc ff	jsr $ffdc		JSR OUTHEX
 .f112	e0 03		cpx #$03		CPX #$03
 .f114	d0 03		bne $f119		BNE _SKIP
-.f116	20 b9 fe	jsr $feb9		JSR PRDASH
+.f116	20 c4 fe	jsr $fec4		JSR PRDASH
 .f119	ca		dex		_SKIP	DEX
 .f11a	d0 f1		bne $f10d		BNE _LOOP
 .f11c	60		rts		RET	RTS
@@ -475,11 +475,11 @@
 .f26d	20 dc f4	jsr $f4dc		JSR UPDTCL	; increment CURLNL,H by Y bytes
 .f270	d0 e4		bne $f256		BNE _NXTLN	; always branches
 .f272					PRNTLN
-.f272	20 e5 fe	jsr $fee5		JSR CRLF
+.f272	20 f0 fe	jsr $fef0		JSR CRLF
 .f275	86 2f		stx $2f			STX XSAV
 .f277	20 ee f3	jsr $f3ee		JSR DETKN
 .f27a	c8		iny			INY
-.f27b	20 d6 fe	jsr $fed6		JSR PRLNNM
+.f27b	20 e1 fe	jsr $fee1		JSR PRLNNM
 .f27e	a2 00		ldx #$00		LDX #$00
 .f280	b5 04		lda $04,x	_PRINT	LDA LABEL,X
 .f282	f0 06		beq $f28a		BEQ _DONE	; null terminator
@@ -489,7 +489,7 @@
 .f28a	a6 2f		ldx $2f		_DONE	LDX XSAV
 .f28c	60		rts			RTS
 .f28d					NEXTCH
-.f28d	20 ea fe	jsr $feea		JSR GETCH
+.f28d	20 f5 fe	jsr $fef5		JSR GETCH
 .f290	c9 09		cmp #$09		CMP #$09	; is it a tab?
 .f292	d0 02		bne $f296		BNE _SKIP
 .f294	a9 20		lda #$20		LDA #SP
@@ -540,8 +540,8 @@
 .f2de	20 cc f0	jsr $f0cc		JSR FILLSP
 .f2e1	a9 00		lda #$00		LDA #EOL	; need this marker at the start of the comments
 .f2e3	85 1d		sta $1d			STA COMM	; for when return hit in args field
-.f2e5	20 e5 fe	jsr $fee5		JSR CRLF
-.f2e8	20 d6 fe	jsr $fed6		JSR PRLNNM
+.f2e5	20 f0 fe	jsr $fef0		JSR CRLF
+.f2e8	20 e1 fe	jsr $fee1		JSR PRLNNM
 .f2eb	a2 04		ldx #$04		LDX #LABEL	; point to LABEL area
 .f2ed	a9 0a		lda #$0a		LDA #ENDLBL
 .f2ef	20 9c f3	jsr $f39c		JSR ONEFLD
@@ -739,7 +739,7 @@
 .f44a	60		rts			RTS
 .f44b					ASSEM
 .f44b	20 94 f4	jsr $f494		JSR INIT	; Set the default values
-.f44e	20 e5 fe	jsr $fee5		JSR CRLF
+.f44e	20 f0 fe	jsr $fef0		JSR CRLF
 .f451	20 f8 f5	jsr $f5f8		JSR MYPRPC
 .f454	20 b8 f4	jsr $f4b8	_NEXT	JSR DO1LN	; line is in the buffer - parse it
 .f457	e8		inx			INX
@@ -752,7 +752,7 @@
 .f464	f0 03		beq $f469		BEQ SHWERR
 .f466	4c f8 f5	jmp $f5f8		JMP MYPRPC	; output finishing module end address
 .f469					SHWERR
-.f469	20 e5 fe	jsr $fee5		JSR CRLF
+.f469	20 f0 fe	jsr $fef0		JSR CRLF
 .f46c	a2 05		ldx #$05		LDX #ERPRSZ
 .f46e	bd 53 fd	lda $fd53,x	_NEXT	LDA ERRPRE-1,X
 .f471	20 ef ff	jsr $ffef		JSR OUTCH
@@ -954,7 +954,7 @@
 .f5dc	20 10 f6	jsr $f610		JSR PATCH
 .f5df	e0 ff		cpx #$ff		CPX #FAIL
 .f5e1	f0 c0		beq $f5a3		BEQ DIROK
-.f5e3	20 c4 fe	jsr $fec4		JSR SHWMOD
+.f5e3	20 cf fe	jsr $fecf		JSR SHWMOD
 .f5e6	a9 00		lda #$00		LDA #$00	; reset patch flag
 .f5e8	20 f6 f5	jsr $f5f6		JSR ATOFR	; output new module start address
 .f5eb					CLRLCL
@@ -971,7 +971,7 @@
 .f5fc	a4 58		ldy $58			LDY FRFLAG	; flag set => print dash and minus 1
 .f5fe	f0 0d		beq $f60d		BEQ _NODEC
 .f600	48		pha			PHA
-.f601	20 b9 fe	jsr $feb9		JSR PRDASH
+.f601	20 c4 fe	jsr $fec4		JSR PRDASH
 .f604	68		pla			PLA
 .f605	e0 00		cpx #$00		CPX #$00
 .f607	d0 03		bne $f60c		BNE _SKIP	; is X zero?
@@ -1049,7 +1049,7 @@
 .f692	91 f5		sta ($f5),y		STA (CURPCL),Y
 .f694	4c 6d f6	jmp $f66d		JMP _MORE
 .f697	a0 00		ldy #$00	_ERR	LDY #$00
-.f699	20 e0 fe	jsr $fee0		JSR OUTSP
+.f699	20 eb fe	jsr $feeb		JSR OUTSP
 .f69c	b1 46		lda ($46),y	_LOOP2	LDA (PTCHTL),Y	; Show symbol that failed
 .f69e	20 ef ff	jsr $ffef		JSR OUTCH
 .f6a1	c8		iny			INY
@@ -1715,12 +1715,12 @@
 .fb67	20 dc ff	jsr $ffdc	PRNTAX	JSR OUTHEX	; Print target adr of branch
 .fb6a	8a		txa		PRNTX	TXA   		; *  and return
 .fb6b	4c dc ff	jmp $ffdc		JMP OUTHEX
-.fb6e	20 e5 fe	jsr $fee5	PRPC	JSR CRLF	; Output carriage return
+.fb6e	20 f0 fe	jsr $fef0	PRPC	JSR CRLF	; Output carriage return
 .fb71	a5 f6		lda $f6			LDA PCH
 .fb73	a6 f5		ldx $f5			LDX PCL
 .fb75	20 67 fb	jsr $fb67		JSR PRNTAX	; Output PCL and PCH
 .fb78	a2 03		ldx #$03	PRBLNK	LDX #$03	; Blank count
-.fb7a	20 e0 fe	jsr $fee0	PRBL2	JSR OUTSP	; Output a blank
+.fb7a	20 eb fe	jsr $feeb	PRBL2	JSR OUTSP	; Output a blank
 .fb7d	ca		dex			DEX
 .fb7e	d0 fa		bne $fb7a		BNE PRBL2	; Loop until count = 0
 .fb80	60		rts			RTS
@@ -2071,9 +2071,9 @@
 >fd8a	43 5a 49 44 42			FLAGS	.text "CZIDB"
 >fd8f	00					.byte $00	; A non-printing character - this flag always on
 >fd90	56 4e					.text "VN"
-.fd92	20 e5 fe	jsr $fee5	GETCMD	JSR CRLF
-.fd95	20 b9 fe	jsr $feb9		JSR PRDASH
-.fd98	20 be fe	jsr $febe		JSR GETCH1
+.fd92	20 f0 fe	jsr $fef0	GETCMD	JSR CRLF
+.fd95	20 c4 fe	jsr $fec4		JSR PRDASH
+.fd98	20 c9 fe	jsr $fec9		JSR GETCH1
 .fd9b	a0 07		ldy #$07		LDY #NDBGCS
 .fd9d	d9 82 fd	cmp $fd82,y	_LOOP	CMP DBGCMD-1,Y
 .fda0	f0 5c		beq $fdfe		BEQ DOCMD	; if we've found a PC or register change command, then run it
@@ -2123,7 +2123,7 @@
 .fdf9	d0 97		bne $fd92		BNE GETCMD
 .fdfb	4c 0f ff	jmp $ff0f		JMP MONTOR
 .fdfe	a2 fe		ldx #$fe	DOCMD	LDX #$FE
-.fe00	20 be fe	jsr $febe	_LOOP	JSR GETCH1
+.fe00	20 c9 fe	jsr $fec9	_LOOP	JSR GETCH1
 .fe03	95 11		sta $11,x		STA ARGS+2,X
 .fe05	e8		inx			INX
 .fe06	d0 f8		bne $fe00		BNE _LOOP
@@ -2171,14 +2171,14 @@
 .fe50	85 f5		sta $f5		NEWPCL  STA PCL
 .fe52	b0 f3		bcs $fe47		BCS XJMP
 .fe54	4c 1e fe	jmp $fe1e		JMP XBRK
-.fe57	20 e5 fe	jsr $fee5	SHOW	JSR CRLF
+.fe57	20 f0 fe	jsr $fef0	SHOW	JSR CRLF
 .fe5a	a2 05		ldx #$05		LDX #NREGS
 .fe5c	bd 82 fd	lda $fd82,x	_LOOP	LDA DBGCMD-1,X
 .fe5f	20 ef ff	jsr $ffef		JSR OUTCH
-.fe62	20 b9 fe	jsr $feb9		JSR PRDASH
+.fe62	20 c4 fe	jsr $fec4		JSR PRDASH
 .fe65	b5 ef		lda $ef,x		LDA REGS-1,X
 .fe67	20 dc ff	jsr $ffdc		JSR OUTHEX
-.fe6a	20 e0 fe	jsr $fee0		JSR OUTSP
+.fe6a	20 eb fe	jsr $feeb		JSR OUTSP
 .fe6d	ca		dex			DEX
 .fe6e	d0 ec		bne $fe5c		BNE _LOOP
 .fe70	a5 f0		lda $f0			LDA SAVP	; show the flags explicitly as well
@@ -2224,37 +2224,37 @@
 .feb5	86 f1		stx $f1			STX SAVS
 .feb7	d8		cld			CLD
 .feb8	60		rts			RTS
-.feb9					PRDASH
-.feb9	a9 2d		lda #$2d		LDA #MINUS
-.febb	4c ef ff	jmp $ffef		JMP OUTCH
-.febe	20 ea fe	jsr $feea	GETCH1	JSR GETCH
-.fec1	4c ef ff	jmp $ffef		JMP OUTCH
-.fec4					SHWMOD
-.fec4	20 e5 fe	jsr $fee5		JSR CRLF
-.fec7	a2 00		ldx #$00		LDX #$00
-.fec9	b5 04		lda $04,x	_LOOP2	LDA LABEL,X
-.fecb	20 ef ff	jsr $ffef		JSR OUTCH
-.fece	e8		inx			INX
-.fecf	e0 06		cpx #$06		CPX #LBLSZ
-.fed1	d0 f6		bne $fec9		BNE _LOOP2
-.fed3	20 e0 fe	jsr $fee0		JSR OUTSP
-.fed6					PRLNNM
-.fed6	a5 fb		lda $fb			LDA LINEH
-.fed8	20 e5 ff	jsr $ffe5		JSR PRHEX
-.fedb	a5 fa		lda $fa			LDA LINEL
-.fedd	20 dc ff	jsr $ffdc		JSR OUTHEX
-.fee0					OUTSP
-.fee0	a9 20		lda #$20		LDA #SP
-.fee2	4c ef ff	jmp $ffef		JMP OUTCH
-.fee5					CRLF
-.fee5	a9 0d		lda #$0d		LDA #CR		; "CR"
-.fee7	4c ef ff	jmp $ffef		JMP OUTCH
-.feea					GETCH
-.feea	ad 11 d0	lda $d011		LDA KBDRDY
-.feed	10 fb		bpl $feea		BPL GETCH
-.feef	ad 10 d0	lda $d010		LDA KBD
-.fef2	29 7f		and #$7f		AND #INMASK
-.fef4	60		rts			RTS
+.fec4					PRDASH
+.fec4	a9 2d		lda #$2d		LDA #MINUS
+.fec6	4c ef ff	jmp $ffef		JMP OUTCH
+.fec9	20 f5 fe	jsr $fef5	GETCH1	JSR GETCH
+.fecc	4c ef ff	jmp $ffef		JMP OUTCH
+.fecf					SHWMOD
+.fecf	20 f0 fe	jsr $fef0		JSR CRLF
+.fed2	a2 00		ldx #$00		LDX #$00
+.fed4	b5 04		lda $04,x	_LOOP2	LDA LABEL,X
+.fed6	20 ef ff	jsr $ffef		JSR OUTCH
+.fed9	e8		inx			INX
+.feda	e0 06		cpx #$06		CPX #LBLSZ
+.fedc	d0 f6		bne $fed4		BNE _LOOP2
+.fede	20 eb fe	jsr $feeb		JSR OUTSP
+.fee1					PRLNNM
+.fee1	a5 fb		lda $fb			LDA LINEH
+.fee3	20 e5 ff	jsr $ffe5		JSR PRHEX
+.fee6	a5 fa		lda $fa			LDA LINEL
+.fee8	20 dc ff	jsr $ffdc		JSR OUTHEX
+.feeb					OUTSP
+.feeb	a9 20		lda #$20		LDA #SP
+.feed	4c ef ff	jmp $ffef		JMP OUTCH
+.fef0					CRLF
+.fef0	a9 0d		lda #$0d		LDA #CR		; "CR"
+.fef2	4c ef ff	jmp $ffef		JMP OUTCH
+.fef5					GETCH
+.fef5	ad 11 d0	lda $d011		LDA KBDRDY
+.fef8	10 fb		bpl $fef5		BPL GETCH
+.fefa	ad 10 d0	lda $d010		LDA KBD
+.fefd	29 7f		and #$7f		AND #INMASK
+.feff	60		rts			RTS
 ="_"					BSA1		=     '_';$08		; backspace
 =$24					XAML            =     $24             ;  Last "opened" location Low
 =$25					XAMH            =     $25             ;  Last "opened" location High
@@ -2284,11 +2284,11 @@
 .ff1b	90 f2		bcc $ff0f		        BCC     ESCAPE        ;  Error, generate ESC sequence
 .ff1d	ea		nop			        NOP                   ;  GETLINE padding
 .ff1e	ea		nop			        NOP                   ;  GETLINE padding
-.ff1f	20 e5 fe	jsr $fee5	GETLINE         JSR     CRLF          ;  $FF1F GETLINE entry point
+.ff1f	20 f0 fe	jsr $fef0	GETLINE         JSR     CRLF          ;  $FF1F GETLINE entry point
 .ff22	a0 01		ldy #$01		        LDY     #0+1          ;  Start a new input line
 .ff24	88		dey		BACKSPACE       DEY                   ;  Backup text index
 .ff25	30 f8		bmi $ff1f		        BMI     GETLINE       ;  Oops, line's empty, reinitialize
-.ff27	20 be fe	jsr $febe	NEXTCHAR        JSR     GETCH1
+.ff27	20 c9 fe	jsr $fec9	NEXTCHAR        JSR     GETCH1
 .ff2a	99 00 02	sta $0200,y		        STA     IN,Y          ;  Add to text buffer
 .ff2d	c9 0d		cmp #$0d		        CMP     #CR           ;  CR?
 .ff2f	f0 21		beq $ff52		        BEQ     GOTCR         ;  Yes.
@@ -2359,14 +2359,14 @@
 .ffa5	ca		dex			        DEX                   ;  Next of 2 bytes
 .ffa6	d0 f7		bne $ff9f		        BNE     SETADR        ;  Loop unless X = 0
 .ffa8	d0 12		bne $ffbc	NXTPRNT         BNE     PRDATA        ;  NE means no address to print
-.ffaa	20 e5 fe	jsr $fee5		        JSR     CRLF
+.ffaa	20 f0 fe	jsr $fef0		        JSR     CRLF
 .ffad	a5 25		lda $25			        LDA     XAMH          ;  Output high-order byte of address
 .ffaf	20 dc ff	jsr $ffdc		        JSR     OUTHEX
 .ffb2	a5 24		lda $24			        LDA     XAML          ;  Output low-order byte of address
 .ffb4	20 dc ff	jsr $ffdc		        JSR     OUTHEX
 .ffb7	a9 3a		lda #$3a		        LDA     #':'          ;  Print colon
 .ffb9	20 ef ff	jsr $ffef		        JSR     OUTCH
-.ffbc	20 e0 fe	jsr $fee0	PRDATA          JSR     OUTSP
+.ffbc	20 eb fe	jsr $feeb	PRDATA          JSR     OUTSP
 .ffbf	a1 24		lda ($24,x)		        LDA     (XAML,X)      ;  Get data from address (X=0)
 .ffc1	20 dc ff	jsr $ffdc		        JSR     OUTHEX        ;  Output it in hex format
 .ffc4	86 2b		stx $2b		XAMNEXT         STX     MODEM         ;  0 -> MODE (XAM mode).

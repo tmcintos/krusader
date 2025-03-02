@@ -11,6 +11,9 @@
 ;		DEBUG = -($FE14)
 ;		XBRK = -($FE1E) - debugger re-entry point
 ;		DSMBL = $7BCA($FACA)
+;		GETCH1 = -($FEC9)
+;		CRLF = -($FEF0)
+;		GETCH = -($FEF5)
 
 APPLE1  =1
 INROM	=1
@@ -2766,6 +2769,11 @@ SAVE    STA SAVA        ;SAVE 6502 REG CONTENTS
 	RTS
 	.endif
 
+	.if INROM
+	; Maintain stable ROM entry point addresses
+	* =     $FEC4
+	.endif
+
 ; ****************************************
 ; I/O routines
 ; ****************************************
@@ -2836,6 +2844,9 @@ GETCH   		; Get a character from the keyboard.
 .cerror DEBUG   != $FE14, "DEBUG entry point changed!"
 .cerror XBRK    != $FE1E, "XBRK entry point changed!"
 .cerror DSMBL   != $FACA, "DSMBL entry point changed!"
+.cerror GETCH1  != $FEC9, "GETCH1 entry point changed!"
+.cerror CRLF    != $FEF0, "CRLF entry point changed!"
+.cerror GETCH   != $FEF5, "GETCH entry point changed!"
 .else
 .cerror SHELL   != $711C, "SHELL entry point changed!"
 .cerror MOVEDN  != $7304, "MOVEDN entry point changed!"

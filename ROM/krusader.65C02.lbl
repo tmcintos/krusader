@@ -56,7 +56,7 @@ al f296 .NEXTCH:_SKIP
 al f2a3 .NEXTCH:_NOBS
 al f071 .SHINIT
 al f783 .DOLBL
-al fe93 .PRDASH
+al fec4 .PRDASH
 al ff1e .GL1
 al fa8f .ASC2HX
 al fa9e .ASC2HX:_ERR
@@ -210,7 +210,7 @@ al f0df .NEW
 al fd61 .MODE2
 al fa70 .BYT2HX
 al fa82 .BYT2HX:_CONT
-al fec4 .GETCH
+al fef5 .GETCH
 al f3d8 .TKNISE
 al f3da .TKNISE:_NEXT
 al f3e9 .TKNISE:_EOF
@@ -229,7 +229,7 @@ al faea .DSMBL:_DSMBL2
 al f927 .OVFERR
 al f157 .I1
 al fcbd .MAX
-al feb0 .PRLNNM
+al fee1 .PRLNNM
 al fbad .DISTBL
 al f0ab .ADDARG
 al f0b9 .ADDARG:_NOARG
@@ -314,7 +314,7 @@ al fdba .DIRS
 al f0ba .PCTOLV
 al f551 .CALCAM
 al fccc .BASE
-al febf .CRLF
+al fef0 .CRLF
 al fd0e .OFFSET
 al f14e .E1
 al fa36 .FRET
@@ -347,13 +347,13 @@ al fc07 .GETMNE:_DOC3
 al fc17 .GETMNE:_1
 al fa34 .FERR
 al f79e .QTEVAL
-al fe98 .GETCH1
+al fec9 .GETCH1
 al f906 .STRSYM
 al f921 .STRSYM:_ERR
 al f91c .STRSYM:_SRCH
 al f2be .CHKALN
-al fe9e .SHWMOD
-al fea3 .SHWMOD:_LOOP2
+al fecf .SHWMOD
+al fed4 .SHWMOD:_LOOP2
 al f5bb .DOEQU
 al f078 .TOSTRT
 al f969 .STORE
@@ -392,7 +392,7 @@ al f4ab .INITFR
 al f06b .GOTCMD
 al f581 .DODIR
 al ffc4 .XAMNEXT
-al feba .OUTSP
+al feeb .OUTSP
 al ffbc .PRDATA
 al fae1 .DIS1
 al ff3c .RETERR
