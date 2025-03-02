@@ -19,6 +19,7 @@
 \usepackage[pdftex]{graphicx}
 \usepackage{alltt}
 \usepackage{array}
+\usepackage{caption}
 \usepackage{setspace}
 \usepackage{tabto}
 \usepackage{xspace}
@@ -216,7 +217,7 @@ Table \ref{tab:shellcmds} gives a summary of all commands and their syntax.
 									\ref{sec:token}\tabularnewline
 	\hline
 	\end{tabular}
-	\caption{\krusader shell commands.  Note that any shell commands that use labels
+	\caption{\krusader shell commands.}\caption*{Note that any shell commands that use labels
 	are dependent on the assembler's global symbol table being intact, specifically the pointer information
 	in zero page locations \texttt{\$E9, \$EA} and \texttt{\$EB}, and the table data itself (see
 	figure \ref{fig:memmap}). 	Optional arguments are indicated by $<\cdots>$.}
@@ -761,11 +762,10 @@ errors. The most important memory locations are shown in table \ref{tab:entrypoi
 		\texttt{\$F5,\$F6} -- Address to disassemble from \\
 		\hline
 	\end{tabular}
-	\caption{Important function entry points and related memory locations. \ensuremath{^{*}}The mini-monitor addresses are \texttt{\$FE03} and \texttt{\$FE16} in the 65C02 version, and the disassembler address is \texttt{\$FAEA}.}
+	\caption{Important function entry points and related memory locations.}
+	\caption*{\ensuremath{^{*}}The mini-monitor addresses are \texttt{\$FE03} and \texttt{\$FE16} in the 65C02 version, and the disassembler address is \texttt{\$FAEA}.}
 	\label{tab:entrypoints}
 \end{table}
-
-\setstretch{0.95}  % Slightly decreases line spacing
 
 \subsection{Memory Map}
 \label{sec:memory}
@@ -778,21 +778,6 @@ fixed 1K of space, with 256 bytes taken up by the locals, and the remainder for 
 The global symbol table grows downward to a maximum of 2K (corresponding to 256 symbols).  
 The two most important source locations have both been mentioned already, and are \texttt{\$7100}(\texttt{\$F000}) 
 for initial program entry, and \texttt{\$711C}(\texttt{\$F01C}) for returning to the shell.
-
-\begin{figure}[tb]
-\centering
-\includegraphics[scale=0.85]{Memory.pdf}
-\caption{Memory map for both the high RAM and the ROM versions of \krusader.
-Note that the global symbol table starts at the local/global table boundary and grows downwards, whereas the 
-program source starts at the low address and grows upwards.
-As mentioned in section \protect\ref{sec:memory}, the important values are the high byte of the target
-memory, the high byte of the local/global symbol table boundary, and the start of the source code storage.  For the RAM version, the values are \texttt{\$03, \$6D, \$00} and \texttt{\$1D}, and for the ROM version
-they are \texttt{\$03, \$7C, \$00} and \texttt{\$20}.
-After initialisation, these values are stored in zero page locations \texttt{\$F8, \$F9, \$FE} and \texttt{\$FF}.
-}
-\label{fig:memmap}
-\end{figure}
-
 
 \krusader also
 uses a number of zero page locations, but mostly as an input buffer and during assembly.  The only
@@ -808,7 +793,19 @@ Replica 1 users need to beware of Apple 1 BASIC because it may overwrite several
 be restored before returning to the \krusader shell\footnote{The \replica{P} command is useful 
 for restoring the default values to these zero page memory locations.}.  
 
-\setstretch{1.0}  % Restore line spacing
+\begin{figure}[htb]
+\centering
+\includegraphics[scale=0.85]{Memory.pdf}
+\caption{Memory map for both the high RAM and the ROM versions of \krusader.}
+\caption*{Note that the global symbol table starts at the local/global table boundary and grows downwards, whereas the 
+program source starts at the low address and grows upwards.
+As mentioned in section \protect\ref{sec:memory}, the important values are the high byte of the target
+memory, the high byte of the local/global symbol table boundary, and the start of the source code storage.  For the RAM version, the values are \texttt{\$03, \$6D, \$00} and \texttt{\$1D}, and for the ROM version
+they are \texttt{\$03, \$7C, \$00} and \texttt{\$20}.
+After initialisation, these values are stored in zero page locations \texttt{\$F8, \$F9, \$FE} and \texttt{\$FF}.
+}
+\label{fig:memmap}
+\end{figure}
 
 \subsubsection{Changing Default Memory Locations}
 \label{sec:mem_defaults}
