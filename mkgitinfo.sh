@@ -8,6 +8,8 @@
 #
 SRCFILE=doc/Assembler.tex
 
+GITDIR=$(git rev-parse --git-dir)
+
 # Get the first tag found in the history from the current HEAD
 FIRSTTAG=$(git describe --tags --always --dirty='-*' 2>/dev/null)
 # Get the first tag in history that looks like a Release
@@ -59,4 +61,4 @@ git --no-pager log -1 --date=short --decorate=short \
         firsttagdescribe={$FIRSTTAG},
         reltag={$RELTAG},
         draft={$DRAFTMODE}
-    ]{gitexinfo}" $(git log -1 --format="%H" -- $SRCFILE) > .git/gitHeadInfo.gin
+    ]{gitexinfo}" $(git log -1 --format="%H" -- $SRCFILE) > "${GITDIR}/gitHeadInfo.gin"
