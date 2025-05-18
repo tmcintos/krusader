@@ -2872,10 +2872,10 @@ IN              =     $0200           ;  Input buffer to $027F
 DSP             =     $D012           ;  PIA.B display output register
 DSPCR           =     $D013           ;  PIA.B display control register
 
-MONPROMPT          =     '\'             ;  Prompt character
+MONPROMPT       =     '\'             ;  Prompt character
 
 	        * =     $FF00
-RESET           CLD                   ;  Clear decimal arithmetic mode
+RESET	        CLD                   ;  Clear decimal arithmetic mode
 	        CLI
 	        LDY     #$7F	      ;  Mask for DSP data direction reg
 	        STY     DSP           ;   (DDR mode is assumed after reset)
@@ -2888,7 +2888,7 @@ ESCAPE          LDA     #MONPROMPT    ;  Print prompt character
 ; main monitor loop
 MONLOOP	        JSR     GETLINE       ;  Attempt to read and execute one command
 	        BCS     MONLOOP       ;  Read next command
-                NOP                   ;  OLDESC padding
+	        NOP                   ;  OLDESC padding
 OLDESC	        CLC                   ;  $FF1A legacy ESCAPE re-entry point
 	        BCC     ESCAPE        ;  Error, generate ESC sequence
 	        NOP                   ;  GETLINE padding
