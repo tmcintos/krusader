@@ -45,6 +45,7 @@ GETLINE	=MONTOR		; doesn't work in RAM version because needs adjusted monitor co
 
 BS	=$08		; backspace
 SP	=$20		; space
+HT	=$09		; tab
 CR	=$0D		; carriage return
 LF	=$0A		; line feed
 ESC	=$1B		; escape
@@ -687,7 +688,7 @@ NEXTCH			; Check for valid character in A
 			; Flag success with C flag
 	JSR GETCH
 	.if TABTOSPACE
-	CMP #$09	; is it a tab?
+	CMP #HT 	; is it a tab?
 	BNE _SKIP
 	LDA #SP
 	.endif
