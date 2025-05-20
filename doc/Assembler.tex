@@ -471,7 +471,7 @@ shown below:
 The 8K of Replica 1 ROM, with Integer BASIC, the Monitor, and \krusader, 
 leaves just enough space for a simple interactive debugger, and this section describes
 the debugger included with the ROM version of \krusader.
-By making the \texttt{IRQBRK} vector at \texttt{\$FFFE,F} point to the \texttt{DEBUG}
+By making the \texttt{IRQBRK} vector at \texttt{\$0000,1} point to the \texttt{DEBUG}
 routine at address \texttt{\$FE14} (\texttt{\$FE03} for the 65C02 version), execution of a \texttt{BRK}
 passes control to the mini-monitor, and the registers and next instruction are displayed
 as follows:
@@ -592,7 +592,7 @@ mini-monitor on entry to the subroutine \texttt{SUB}.
 \begin{alltt}
 ? A
 0300
-SUB    005 0309-030C
+SUB    005 0309-030D
 ? D $300
 0300   A9 41       LDA   #$41
 0302   20 09 03    JSR   $0309
@@ -768,7 +768,7 @@ and discussed in the following sections.
 	\hline
 	\texttt{\$FEC9}$^{\dagger}$ & Get character \newline & N/A -- Input character returned in \texttt{A} register \tabularnewline
 	\texttt{\$FEF5}$^{\dagger}$ & Get character (no echo) & \tabularnewline
-	\texttt{\$FEF0}$^{\dagger}$ & Print newline & \tabularnewline
+	\texttt{\$FEF1}$^{\dagger}$ & Print newline & \tabularnewline
 	\hline
 	\end{tabular}
 	\caption{Important function entry points and related memory locations.}

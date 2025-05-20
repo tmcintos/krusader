@@ -4,7 +4,7 @@
 ; (c) Ken Wessen (ken.wessen@gmail.com)
 
 ; Notes:
-;	- 49 bytes free (55 free if TABTOSPACE = 0)
+;	- 37 bytes free (43 free if TABTOSPACE = 0)
 ;	- Entry points:
 ;		SHELL = $711C($F01C)
 ;		MOVEDN = $7304($F204)
@@ -12,7 +12,7 @@
 ;		SHOW = -($FE16)
 ;		DSMBL = $7BEA($FAEA)
 ;		GETCH1 = -($FEC9)
-;		CRLF = -($FEF0)
+;		CRLF = -($FEF1)
 ;		GETCH = -($FEF5)
 ; ****************************************
 ;	- Does not support the single bit operations BBR, BBS, SMB, RMB, or STP and WAI
@@ -51,13 +51,13 @@ LF	=$0A		; line feed
 ESC	=$1B		; escape
 INMASK  =$7F
 	
-LNMSZ	=$03
+LNMSZ	=$03		; line numbers are 3 characters
 LBLSZ	=$06		; labels are up to 6 characters
 MNESZ	=$03		; mnemonics are always 3 characters
 ARGSZ	=$0E		; arguments are up to 14 characters
 COMSZ	=$0A		; comments fill the rest - up to 10 characters
 
-ENDLBL	=LNMSZ+LBLSZ+1
+ENDLBL	=IOBUF+LNMSZ+LBLSZ+1
 ENDMNE	=ENDLBL+MNESZ+1
 ENDARG	=ENDMNE+ARGSZ+1
 ENDLN	=ENDARG+COMSZ+1
@@ -91,7 +91,7 @@ CMNT	=';'		; indicates a full line comment
 
 PROMPT	='?'
 
-EOL	=$00		; end of line marker
+EOL	=$00		; end of line marker (must be zero!)
 EOFLD	=$01		; end of field in tokenised source line
 BLANK	=$02		; used to mark a blank line
 
@@ -99,19 +99,20 @@ PRGEND	=$FE		; used to flag end of program parsing
 FAIL	=$FF		; used to flag failure in various searches
 
 ; Zero page storage	
-IOBUF	=$00		; I/O buffer for source code input and analysis
-LABEL	=$04		; label starts here
-MNE	=$0B		; mnemonic starts here
-ARGS	=$0F		; arguments start here
-COMM    =$1D		; comments start here
-FREFTL	=$29		; address of forward reference table
-FREFTH	=$2A
-NFREF	=$2B		; number of forward symbols
-RECNM	=$2C		; number of table entries
-RECSZ	=$2D		; size of table entries
-RECSIG	=$2E		; significant characters in table entries
-XSAV	=$2F
-YSAV	=$30
+IRQVEC	=$00		; IRQ vector (3 bytes)
+IOBUF	=$03		; I/O buffer for source code input and analysis
+LABEL	=$07		; label starts here
+MNE	=$0E		; mnemonic starts here
+ARGS	=$12		; arguments start here
+COMM    =$20		; comments start here
+FREFTL	=$2C		; address of forward reference table
+FREFTH	=$2D
+NFREF	=$2E		; number of forward symbols
+RECNM	=$2F		; number of table entries
+RECSZ	=$30		; size of table entries
+RECSIG	=$31		; significant characters in table entries
+XSAV	=$32
+YSAV	=$33
 CURMNE	=$3C		; Holds the current mne index
 CURADM	=$3D		; Holds the current addressing mode
 LVALL	=$3E		; Storage for a label value
@@ -234,7 +235,7 @@ _KEY	JSR GETCH
 	CMP #CR
 	BEQ _RUN
 	JSR OUTCH
-	STA IOBUF,X
+	STA 0,X
 	INX
 	BNE _KEY	; always branches
 _RUN	LDA ARGS
@@ -706,11 +707,11 @@ _NOBS	CPY #CR
 	CPX #LABEL	; CR at start of LABEL means a blank line
 	BEQ DOBLNK
 	LDA #EOL
-	STA IOBUF,X
-	BEQ GOTEOL
+	STA 0,X
+	BEQ GOTEOL	; branch always (EOL=0)
 LFAIL	LDX #FAIL	; may flag error or just end
 LRET	RTS
-CHANM	CPX #LINESZ	; ignore any characters over the end of the line
+CHANM	CPX #(IOBUF+LINESZ) ; ignore any characters over the end of the line
 	BPL CHNO
 ;	CMP #']'+1	; is character is in range $20-$5D?
 ;	BPL CHNO	; branch to NO...
@@ -867,7 +868,7 @@ ONEFLD			; do one entry field
 _NEXT	JSR NEXTCH	; catches ESC, CR and BS
 	BCC _NEXT	; only allow legal keys
 	JSR OUTCH	; echo
-	STA IOBUF,X
+	STA 0,X
 	INX
 	CMP #SP
 	BEQ _FILL
@@ -879,7 +880,7 @@ _FILL	LDA TEMP1
 	CPX TEMP1	; fill spaces
 	BEQ _RET
 	LDA #SP
-	STA IOBUF,X
+	STA 0,X
 	JSR OUTCH
 _CONT	INX
 	BNE _FILL	; always branches
@@ -887,22 +888,22 @@ _CONT	INX
 ; ****************************************
 	
 INSSPC	
-	LDA <(IOBUF-1),X	; was previous character a space?
+	LDA <(-1),X	; was previous character a space?
 	CMP #SP
 	BEQ _JUMP
 _GET	JSR NEXTCH	; handles BS, CR and ESC
 	CMP #SP
 	BNE _GET	; only let SP through
-_JUMP	STA IOBUF,X	; insert the space
+_JUMP	STA 0,X 	; insert the space
 	INX
 	JMP OUTCH
 
 TKNISE	
 	LDY #$00
 _NEXT	LDA (MISCL),Y
-	BEQ _EOF
-	CMP TEMP2
 	BEQ _EOF	; null terminator
+	CMP TEMP2
+	BEQ _EOF	; token separator
 	STA IOBUF,X
 	INX
 	INC MISCL
@@ -929,7 +930,7 @@ _LBL	LDA (CURLNL),Y
 	BEQ _EOL
 _SKIP	CMP #EOFLD
 	BEQ _CHK
-	STA IOBUF,X
+	STA 0,X
 	INX
 	INY
 	BNE _LBL
@@ -966,12 +967,12 @@ _LOOP	LDA (CURLNL),Y
 	INY
 	LDX #COMM	; point to COMM area
 	BNE _LOOP
-_CONT	STA IOBUF,X
+_CONT	STA 0,X
 	INX
 _CMNT	INY
 	BNE _LOOP
 _EOP	LDX #PRGEND
-_EOL	STA IOBUF,X
+_EOL	STA 0,X
 	RTS
 
 ; ****************************************
@@ -2754,9 +2755,26 @@ _LOOP	JSR GETCH1
 	BCS SHOW
 	.endif
 
+; ****************************************
+; Reset Vector
+; ****************************************
 	.if INROM
 	; Maintain stable ROM entry point addresses
-	* =     $FEC4
+.cerror * > $FEB8, "ROM overflow!"
+	* = $FEB8
+RESET
+	.if MINIMONITOR
+	; copy DBGJMP to zero page IRQVEC
+	LDX #3
+_LOOP	LDA DBGJMP-1,X
+	DEX
+	STA IRQVEC,X
+	BNE _LOOP
+	BEQ WOZMON
+	.else
+	JMP WOZMON
+	.fill 9
+	.endif
 	.endif
 
 ; ****************************************
@@ -2765,13 +2783,23 @@ _LOOP	JSR GETCH1
 
 PRDASH	
 	LDA #MINUS
-	JMP OUTCH
+OUTCH_	JMP OUTCH
 	
 ; ****************************************
 	
 	.if INROM|MINIMONITOR
 GETCH1	JSR GETCH
-	JMP OUTCH
+	.if APPLE1
+	BPL OUTCH_	; branch always
+	.else
+	BNE OUTCH_	; branch always
+	.endif
+	.if MINIMONITOR
+; code copied to IRQVEC on RESET
+DBGJMP	JMP (DBGVEC)
+	.else
+	.fill 3
+	.endif
 	.endif
 
 ; ****************************************
@@ -2799,16 +2827,16 @@ PRLNNM
 
 OUTSP	
 	LDA #SP
-	JMP OUTCH
+	BNE OUTCH_
 	
 CRLF			; Go to a new line.
 	LDA #CR		; "CR"
 	.if APPLE1
-	JMP OUTCH
+	BNE OUTCH_	; branch always
 	.else
 	JSR OUTCH
 	LDA #LF		; "LF" - is this needed for the Apple 1?
-	JMP OUTCH
+	BNE OUTCH_	; branch always
 	.endif
 
 GETCH   		; Get a character from the keyboard.
@@ -2816,26 +2844,30 @@ GETCH   		; Get a character from the keyboard.
 	.if APPLE1
 	BPL GETCH
 	LDA KBD
-	AND #INMASK
+	AND #INMASK	; clear msb; returns with N=0
 	.else
-	BEQ GETCH
+	BEQ GETCH	; returns with Z=0
 	.endif
 	RTS
 
 ; ensure that documented entry points are maintained
 .if INROM
-.cerror SHELL   != $F01C, "SHELL entry point changed!""
-.cerror MOVEDN  != $F204, "MOVEDN entry point changed!"
-.cerror DEBUG   != $FE03, "DEBUG entry point changed!"
-.cerror SHOW    != $FE16, "XBRK entry point changed!"
-.cerror DSMBL   != $FAEA, "DSMBL entry point changed!"
-.cerror GETCH1  != $FEC9, "GETCH1 entry point changed!"
-.cerror CRLF    != $FEF0, "CRLF entry point changed!"
-.cerror GETCH   != $FEF5, "GETCH entry point changed!"
+.cwarn MAIN    != $F000, "MAIN entry point changed!"
+.cwarn SHELL   != $F01C, "SHELL entry point changed!"
+.cwarn MOVEDN  != $F204, "MOVEDN entry point changed!"
+.if MINIMONITOR
+.cwarn DEBUG   != $FE03, "DEBUG entry point changed!"
+.cwarn SHOW    != $FE16, "XBRK entry point changed!"
+.endif
+.cwarn DSMBL   != $FAEA, "DSMBL entry point changed!"
+.cwarn GETCH1  != $FEC9, "GETCH1 entry point changed!"
+.cwarn CRLF    != $FEF1, "CRLF entry point changed!"
+.cwarn GETCH   != $FEF5, "GETCH entry point changed!"
 .else
-.cerror SHELL   != $711C, "SHELL entry point changed!"
-.cerror MOVEDN  != $7304, "MOVEDN entry point changed!"
-.cerror DSMBL   != $7BEA, "DSMBL entry point changed!"
+.cwarn MAIN    != $7100, "MAIN entry point changed!"
+.cwarn SHELL   != $711C, "SHELL entry point changed!"
+.cwarn MOVEDN  != $7304, "MOVEDN entry point changed!"
+.cwarn DSMBL   != $7BEA, "DSMBL entry point changed!"
 .endif
 
 ;-------------------------------------------------------------------------
@@ -2875,8 +2907,9 @@ DSPCR           =     $D013           ;  PIA.B display control register
 
 MONPROMPT       =     '\'             ;  Prompt character
 
+.cerror * > $FF00, "ROM overflow!"
 	        * =     $FF00
-RESET	        CLD                   ;  Clear decimal arithmetic mode
+WOZMON	        CLD                   ;  Clear decimal arithmetic mode
 	        CLI
 	        LDY     #$7F	      ;  Mask for DSP data direction reg
 	        STY     DSP           ;   (DDR mode is assumed after reset)
@@ -3053,14 +3086,15 @@ OUTCH	STA PUTCH
 	RTS  
 	.endif
 	
+.cerror * > $FFF8, "ROM overflow!"
+	.if MINIMONITOR
+	* = $FFF8
+DBGVEC  .word DEBUG
+	.endif
 	* = $FFFA	; INTERRUPT VECTORS
 	.word $0F00	; NMI
-	.word RESET
-	.if MINIMONITOR
-	.word DEBUG	; IRQBRK
-	.else
-	.word $0000	; IRQBRK
-	.endif
+	.word RESET	; RESET
+	.word IRQVEC	; IRQ/BRK
 	.else
 ; Apple 1 I/O values
 OUTCH	=$FFEF		; Apple 1 Echo
