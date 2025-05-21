@@ -5,7 +5,5 @@ Memory map for output file: ROM/krusader.65C02.bin
 
 Type        Size      Range      Size    Name
 Data:       3731   $f000-$fe92   $0e93
-Gap:          49   $fe93-$fec3   $0031
-Data:        308   $fec4-$fff7   $0134
-Gap:           2   $fff8-$fff9   $0002
-Data:          6   $fffa-$ffff   $0006
+Gap:          37   $fe93-$feb7   $0025
+Data:        328   $feb8-$ffff   $0148

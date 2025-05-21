@@ -4,8 +4,4 @@
 Memory map for output file: ROM/krusader.6502.bin
 
 Type        Size      Range      Size    Name
-Data:       3769   $f000-$feb8   $0eb9
-Gap:          11   $feb9-$fec3   $000b
-Data:        308   $fec4-$fff7   $0134
-Gap:           2   $fff8-$fff9   $0002
-Data:          6   $fffa-$ffff   $0006
+Data:       4096   $f000-$ffff   $1000

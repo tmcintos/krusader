@@ -4,6 +4,7 @@ al f786 .ADDOFF
 al f1c6 .D1
 al fb8b .PRPC
 al fa8d .AHARGS
+al fff8 .DBGVEC
 al f01c .SHELL
 al f035 .SHELL:_KEY
 al f048 .SHELL:_RUN
@@ -183,6 +184,7 @@ al f24f .TOEND
 al f4ba .RET1
 al f9b0 .SYMSCH
 al fdc4 .ERRMSG
+al ff00 .WOZMON
 al ff0f .ESCAPE
 al f54a .INCPC
 al f550 .INCPC:_DONE
@@ -214,7 +216,6 @@ al fef5 .GETCH
 al f3d8 .TKNISE
 al f3da .TKNISE:_NEXT
 al f3e9 .TKNISE:_EOF
-al ff00 .RESET
 al fb87 .PRNTX
 al f085 .PANIC
 al f08e .PANIC:_SKIP
@@ -229,7 +230,7 @@ al faea .DSMBL:_DSMBL2
 al f927 .OVFERR
 al f157 .I1
 al fcbd .MAX
-al fee1 .PRLNNM
+al fee3 .PRLNNM
 al fbad .DISTBL
 al f0ab .ADDARG
 al f0b9 .ADDARG:_NOARG
@@ -273,6 +274,8 @@ al f186 .INSERT:_READY
 al f16a .INSERT:_IN
 al f773 .DOREL
 al ff78 .NEXTHEX
+al f0ce .FILBUF
+al f0d0 .FILBUF:_CLR
 al f14f .EDIT
 al ff5a .BLSKIP
 al fd1d .MODE
@@ -314,12 +317,13 @@ al fdba .DIRS
 al f0ba .PCTOLV
 al f551 .CALCAM
 al fccc .BASE
-al fef0 .CRLF
+al fef1 .CRLF
 al fd0e .OFFSET
 al f14e .E1
 al fa36 .FRET
 al f09f .R1
 al f5ba .DIROK
+al fece .DBGJMP
 al f2b8 .CHOK
 al f4f3 .MKOBJC
 al f51d .MKOBJC:_CONT
@@ -352,8 +356,8 @@ al f906 .STRSYM
 al f921 .STRSYM:_ERR
 al f91c .STRSYM:_SRCH
 al f2be .CHKALN
-al fecf .SHWMOD
-al fed4 .SHWMOD:_LOOP2
+al fed1 .SHWMOD
+al fed6 .SHWMOD:_LOOP2
 al f5bb .DOEQU
 al f078 .TOSTRT
 al f969 .STORE
@@ -365,11 +369,11 @@ al fd93 .CMDS
 al fdad .CMDL
 al fda0 .CMDH
 al f064 .ERR2
+al feb8 .RESET
+al feba .RESET:_LOOP
 al f923 .SYMERR
 al f309 .TOTKN
 al f326 .TOTKN:_CONT
-al f0ce .FILBUF
-al f0d0 .FILBUF:_CLR
 al f799 .DECLV
 al fe44 .GETCMD
 al fe4f .GETCMD:_LOOP
@@ -391,8 +395,9 @@ al f1ee .DELETE:_INC
 al f4ab .INITFR
 al f06b .GOTCMD
 al f581 .DODIR
+al fec6 .OUTCH_
 al ffc4 .XAMNEXT
-al feeb .OUTSP
+al feed .OUTSP
 al ffbc .PRDATA
 al fae1 .DIS1
 al ff3c .RETERR
